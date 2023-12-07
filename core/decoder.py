@@ -1,11 +1,113 @@
 import sys
+import math
+import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from .correlation import correlation  # the custom cost volume layer
 
-try:
-    from .correlation import correlation  # the custom cost volume layer
-except:
-    sys.path.insert(0, './correlation')
-    import correlation  # you should consider upgrading python
+
+def get_emb(sin_inp):
+    """
+    Gets a base embedding for one dimension with sin and cos intertwined
+    """
+    emb = torch.stack((sin_inp.sin(), sin_inp.cos()), dim=-1)
+    return torch.flatten(emb, -2, -1)
+
+
+class PositionalEncoding2D(nn.Module):
+
+    def __init__(self, channels):
+        """
+        :param channels: The last dimension of the tensor you want to apply pos emb to.
+        """
+        super(PositionalEncoding2D, self).__init__()
+        self.org_channels = channels
+        channels = int(np.ceil(channels / 4) * 2)
+        self.channels = channels
+        inv_freq = 1.0 / (10000
+                          **(torch.arange(0, channels, 2).float() / channels))
+        self.register_buffer("inv_freq", inv_freq)
+        self.register_buffer("cached_penc", None)
+
+    def forward(self, tensor):
+        """
+        :param tensor: A 4d tensor of size (batch_size, x, y, ch)
+        :return: Positional Encoding Matrix of size (batch_size, x, y, ch)
+        """
+        if len(tensor.shape) != 4:
+            raise RuntimeError("The input tensor has to be 4d!")
+
+        if self.cached_penc is not None and self.cached_penc.shape == tensor.shape:
+            return self.cached_penc
+
+        self.cached_penc = None
+        batch_size, x, y, orig_ch = tensor.shape
+        pos_x = torch.arange(x,
+                             device=tensor.device).type(self.inv_freq.type())
+        pos_y = torch.arange(y,
+                             device=tensor.device).type(self.inv_freq.type())
+        sin_inp_x = torch.einsum("i,j->ij", pos_x, self.inv_freq)
+        sin_inp_y = torch.einsum("i,j->ij", pos_y, self.inv_freq)
+        emb_x = get_emb(sin_inp_x).unsqueeze(1)
+        emb_y = get_emb(sin_inp_y)
+        emb = torch.zeros((x, y, self.channels * 2),
+                          device=tensor.device).type(tensor.type())
+        emb[:, :, :self.channels] = emb_x
+        emb[:, :, self.channels:2 * self.channels] = emb_y
+
+        self.cached_penc = emb[None, :, :, :orig_ch].repeat(
+            tensor.shape[0], 1, 1, 1)
+        return self.cached_penc
+
+
+class AttentionLayer(nn.Module):
+
+    def __init__(self, cfg, dropout=0.):
+        super(AttentionLayer, self).__init__()
+        self.cfg = cfg
+        self.dim = cfg.dim
+        self.norm1 = nn.LayerNorm(cfg.dim)
+        self.norm2 = nn.LayerNorm(cfg.dim)
+        self.proj = nn.Linear(cfg.dim, cfg.dim)
+        self.pos = PositionalEncoding2D(cfg.dim)
+        self.q, self.k, self.v = nn.Linear(cfg.dim, cfg.dim), nn.Linear(
+            512, cfg.dim), nn.Linear(512, cfg.dim)
+        self.att = nn.MultiheadAttention(cfg.dim,
+                                         cfg.num_heads,
+                                         dropout=cfg.dropout,
+                                         batch_first=True)
+        self.ffn = nn.Sequential(nn.Linear(cfg.dim, cfg.dim), nn.GELU(),
+                                 nn.Dropout(cfg.dropout),
+                                 nn.Linear(cfg.dim, cfg.dim),
+                                 nn.Dropout(cfg.dropout))
+
+    def forward(self, query, key, value, memory, cov):
+        if key is None and value is None:
+            key, value = self.k(memory), self.v(memory)
+            B, C, H, W = key.shape
+            key = key.reshape(B, H * W * C // self.dim, self.dim)
+            value = value.reshape(B, H * W * C // self.dim, self.dim)
+        B, C, H, W = query.shape
+        query = query.reshape(B, H * W * C // self.dim, self.dim)
+        shortcut = query
+        query = self.norm1(query)
+
+        cov_pos_embed = self.pos(cov.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+        cov = torch.cat([cov, cov_pos_embed], dim=1)
+        B, C, H, W = cov.shape
+        cov = cov.reshape(B, H * W * C // self.dim, self.dim)
+
+        q = self.q(torch.cat([query, cov], dim=1))
+        k, v = key, value
+        x = self.att(q, k, v)[0]
+
+        x = self.proj(torch.cat([x, shortcut], dim=1))
+        x = x + self.ffn(self.norm2(x))
+        C = 4 * self.cfg.mixtures + 4
+        x = x.reshape(B, H, W, C).permute(0, 3, 1, 2)
+
+        return x, k, v
 
 
 class Decoder(torch.nn.Module):

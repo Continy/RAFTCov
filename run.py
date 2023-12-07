@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import argparse
 import getopt
 import math
 import numpy
@@ -7,16 +7,12 @@ import PIL
 import PIL.Image
 import sys
 import torch
-from network import Network
+from core.network import Network
+from configs.tartanair import get_cfg
 
-##########################################################
+torch.set_grad_enabled(False)
 
-torch.set_grad_enabled(
-    False)  # make sure to not compute gradients for computational performance
-
-torch.backends.cudnn.enabled = True  # make sure to use cudnn for computational performance
-
-##########################################################
+torch.backends.cudnn.enabled = True
 
 arguments_strModel = 'default'  # 'default', or 'chairs-things'
 arguments_strOne = './images/one.png'
@@ -39,15 +35,15 @@ for strOption, strArgument in getopt.getopt(
 ##########################################################
 
 netNetwork = None
-
+cfg = get_cfg()
 ##########################################################
-Network().load_state_dict({
-    strKey.replace('module', 'net'): tenWeight
-    for strKey, tenWeight in torch.hub.load_state_dict_from_url(
-        url='http://content.sniklaus.com/github/pytorch-pwc/network-' +
-        arguments_strModel + '.pytorch',
-        file_name='pwc-' + arguments_strModel).items()
-})
+Network(cfg).load_state_dict(
+    {
+        strKey.replace('module', 'net'): tenWeight
+        for strKey, tenWeight in torch.load('models/' +
+                                            arguments_strModel).items()
+    },
+    strict=False)
 
 
 ##########################################################
@@ -55,7 +51,7 @@ def estimate(tenOne, tenTwo):
     global netNetwork
 
     if netNetwork is None:
-        netNetwork = Network().cuda().eval()
+        netNetwork = Network(cfg).cuda().eval()
     # end
 
     assert (tenOne.shape[1] == tenTwo.shape[1])
@@ -64,12 +60,8 @@ def estimate(tenOne, tenTwo):
     intWidth = tenOne.shape[2]
     intHeight = tenOne.shape[1]
 
-    assert (
-        intWidth == 1024
-    )  # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
-    assert (
-        intHeight == 436
-    )  # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
+    assert (intWidth == 1024)
+    assert (intHeight == 436)
 
     tenPreprocessedOne = tenOne.cuda().view(1, 3, intHeight, intWidth)
     tenPreprocessedTwo = tenTwo.cuda().view(1, 3, intHeight, intWidth)
@@ -87,9 +79,8 @@ def estimate(tenOne, tenTwo):
         size=(intPreprocessedHeight, intPreprocessedWidth),
         mode='bilinear',
         align_corners=False)
-
-    tenFlow = torch.nn.functional.interpolate(input=netNetwork(
-        tenPreprocessedOne, tenPreprocessedTwo),
+    flownetinput, cov = netNetwork(tenPreprocessedOne, tenPreprocessedTwo)
+    tenFlow = torch.nn.functional.interpolate(input=flownetinput,
                                               size=(intHeight, intWidth),
                                               mode='bilinear',
                                               align_corners=False)

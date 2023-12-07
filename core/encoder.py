@@ -5,16 +5,12 @@ import torch.nn.functional as F
 
 class GaussianEncoder(nn.Module):
 
-    def __init__(self, args):
+    def __init__(self, cfg):
         super(GaussianEncoder, self).__init__()
-        if args.only_global:
-            print("[Decoding with only global cost]")
-            cor_planes = args.query_latent_dim
-        else:
-            cor_planes = 81 + args.query_latent_dim  #TODO:
-        self.convc1 = nn.Conv2d(cor_planes, 256, 1, padding=0)
+
+        self.convc1 = nn.Conv2d(4 * cfg.mixtures + 6, 256, 1, padding=0)
         self.convc2 = nn.Conv2d(256, 192, 3, padding=1)
-        self.convf1 = nn.Conv2d(2, 128, 7, padding=3)
+        self.convf1 = nn.Conv2d(2 * cfg.mixtures, 128, 7, padding=3)
         self.convf2 = nn.Conv2d(128, 64, 3, padding=1)
         self.conv = nn.Conv2d(64 + 192, 128 - 2, 3, padding=1)
 
@@ -27,30 +23,6 @@ class GaussianEncoder(nn.Module):
         cor_flo = torch.cat([cor, flo], dim=1)
         out = F.relu(self.conv(cor_flo))
         return torch.cat([out, cov], dim=1)
-
-
-class SelfAttentionLayer(nn.Module):
-
-    def __init__(self, dim, cfg, dropout=0.):
-        super(SelfAttentionLayer, self).__init__()
-        self.dim = dim
-        self.cfg = cfg
-        self.norm1 = nn.LayerNorm(dim)
-        self.norm2 = nn.LayerNorm(dim)
-        self.q, self.k, self.v = nn.Linear(dim, dim), nn.Linear(
-            dim, dim), nn.Linear(dim, dim)
-        self.att = nn.MultiheadAttention(dim, cfg.num_heads, dropout=dropout)
-        self.ffn = nn.Sequential(nn.Linear(dim, dim), nn.GELU(),
-                                 nn.Dropout(dropout), nn.Linear(dim, dim),
-                                 nn.Dropout(dropout))
-
-    def forward(self, x):
-        shortcut = x
-        x = self.norm1(x)
-        q, k, v = self.q(x), self.k(x), self.v(x)
-        x = self.att(q, k, v)[0]
-        x = shortcut + x
-        x = x + self.ffn(self.norm2(x))
 
 
 class Encoder(torch.nn.Module):
