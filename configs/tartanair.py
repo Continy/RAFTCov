@@ -17,9 +17,9 @@ cfg.log = False
 cfg.dim = 16
 cfg.dropout = 0.1
 
-cfg.num_heads = 16
+cfg.num_heads = 1
 cfg.mixtures = 4
-cfg.gru_iters = 12
+cfg.gru_iters = 6
 
 #training:
 cfg.mixed_precision = False
