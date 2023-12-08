@@ -25,7 +25,7 @@ from core.utils.misc import process_cfg
 from loguru import logger as loguru_logger
 from core.network import Network
 from configs.tartanair import get_cfg
-from core.utils.preprocess import preprocess
+from core.utils.preprocess import preprocess, reverse
 # from torch.utils.tensorboard import SummaryWriter
 from core.utils.logger import Logger
 
@@ -82,7 +82,8 @@ def count_parameters(model):
 def train(cfg):
     model = nn.DataParallel(Network(cfg))
 
-    loguru_logger.info("Parameter Count: %d" % count_parameters(model))
+    loguru_logger.info("Parameter Count: %d" %
+                       count_parameters(model.module.netGaussian))
 
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
@@ -135,12 +136,9 @@ def train(cfg):
             image1, W, H, W_, H_ = preprocess(image1)
             image2, _, _, _, _ = preprocess(image2)
             flow, covs = model(image1, image2)
-            flow = F.interpolate(flow,
-                                 size=(H, W),
-                                 mode='bilinear',
-                                 align_corners=False)
-            flow[:, 0, :, :] *= float(W) / float(W_)
-            flow[:, 1, :, :] *= float(H) / float(H_)
+            flow = reverse(flow, W, H, W_, H_)
+            covs = [reverse(cov, W, H, W_, H_) for cov in covs]
+
             loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)

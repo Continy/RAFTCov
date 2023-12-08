@@ -104,7 +104,7 @@ class AttentionLayer(nn.Module):
         self.proj = nn.Linear(cfg.dim, cfg.dim)
         self.pos = PositionalEncoding2D(cfg.dim)
         self.q, self.k, self.v = nn.Linear(cfg.dim, cfg.dim), nn.Linear(
-            512, cfg.dim), nn.Linear(512, cfg.dim)
+            64, cfg.dim), nn.Linear(64, cfg.dim)
         self.att = MultiHeadAttention(cfg.dim, cfg.num_heads)
         self.ffn = nn.Sequential(nn.Linear(cfg.dim, cfg.dim), nn.GELU(),
                                  nn.Dropout(cfg.dropout),
@@ -118,7 +118,9 @@ class AttentionLayer(nn.Module):
             key = key.reshape(B, H * W * C // self.dim, self.dim)
             value = value.reshape(B, H * W * C // self.dim, self.dim)
         B, C, H, W = query.shape
+
         query = query.reshape(B, H * W * C // self.dim, self.dim)
+
         shortcut = query
         query = self.norm1(query)
 
@@ -126,10 +128,10 @@ class AttentionLayer(nn.Module):
         cov = torch.cat([cov, cov_pos_embed], dim=1)
         B, C, H, W = cov.shape
         cov = cov.reshape(B, H * W * C // self.dim, self.dim)
-
         q = self.q(torch.cat([query, cov], dim=1))
 
         k, v = key, value
+
         x = self.att(q, k, v)
 
         x = self.proj(torch.cat([x, shortcut], dim=1))

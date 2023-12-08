@@ -28,13 +28,16 @@ class Network(torch.nn.Module):
 
         objEstimate = self.netSix(tenOne[-1], tenTwo[-1], None)
         objEstimate = self.netFiv(tenOne[-2], tenTwo[-2], objEstimate)
+
         objEstimate = self.netFou(tenOne[-3], tenTwo[-3], objEstimate)
+
         objEstimate = self.netThr(tenOne[-4], tenTwo[-4], objEstimate)
-        objEstimate = self.netTwo(tenOne[-5], tenTwo[-5], objEstimate)
-        context = torch.cat([tenOne[-5], tenTwo[-5]], dim=1)
-        #memory = objEstimate
+        memory = objEstimate['tenFeat']
         cost_map = objEstimate['tenFlow']
-        cov_preds = self.netGaussian(context, objEstimate['tenFeat'], cost_map)
+        objEstimate = self.netTwo(tenOne[-5], tenTwo[-5], objEstimate)
+        context = torch.cat([tenOne[-4], tenTwo[-4]], dim=1)
+        #memory = objEstimate
+        cov_preds = self.netGaussian(context, memory, cost_map)
         return (objEstimate['tenFlow'] +
                 self.netRefiner(objEstimate['tenFeat'])) * 20.0, cov_preds
 

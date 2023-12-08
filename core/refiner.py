@@ -29,10 +29,10 @@ class GaussianGRU(nn.Module):
         self.iters = cfg.gru_iters
         #downsample x2
         self.proj = nn.Sequential(
-            nn.Conv2d(64, cfg.dim * 2, 3, padding=1),
+            nn.Conv2d(128, cfg.dim * 2, 3, padding=1),
             nn.ReLU(inplace=True),
         )
-        self.mem_proj = nn.Conv2d(565, 512, 1, padding=0)
+        self.mem_proj = nn.Conv2d(597, 64, 1, padding=0)
         self.att = AttentionLayer(cfg)
         self.gaussian = GaussianUpdateBlock(cfg, hidden_dim=cfg.dim)
 
@@ -69,7 +69,6 @@ class GaussianGRU(nn.Module):
         up_mask = None
 
         for i in range(self.iters):
-
             cost, key, value = self.att(cost_map, key, value, memory, covs1)
             corr = torch.cat([cost, cost_map], dim=1)  #C:4*mixtures+6
             cov = covs1 - covs0

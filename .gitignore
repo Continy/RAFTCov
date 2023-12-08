@@ -3,3 +3,4 @@ __pycache__
 *.flo
 models
 *.yaml
+cov.png
