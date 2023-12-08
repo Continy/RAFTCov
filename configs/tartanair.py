@@ -14,10 +14,10 @@ cfg.seed = 1234
 cfg.log = False
 
 #gaussian:
-cfg.dim = 64
+cfg.dim = 128
 cfg.dropout = 0.1
 
-cfg.num_heads = 3
+cfg.num_heads = 4
 cfg.mixtures = 5
 cfg.gru_iters = 12
 
@@ -32,7 +32,7 @@ cfg.clip = 1.0
 cfg.num_steps = 2000
 cfg.epsilon = 1e-8
 cfg.anneal_strategy = 'linear'
-cfg.batch_size = 2
+cfg.batch_size = 8
 cfg.num_workers = 0
 cfg.autosave_freq = 500
 
