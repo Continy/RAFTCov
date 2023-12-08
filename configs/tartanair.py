@@ -14,11 +14,11 @@ cfg.seed = 1234
 cfg.log = False
 
 #gaussian:
-cfg.dim = 128
+cfg.dim = 16
 cfg.dropout = 0.1
 
-cfg.num_heads = 4
-cfg.mixtures = 5
+cfg.num_heads = 2
+cfg.mixtures = 4
 cfg.gru_iters = 12
 
 #training:
