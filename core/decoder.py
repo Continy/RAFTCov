@@ -128,10 +128,7 @@ class AttentionLayer(nn.Module):
         cov = cov.reshape(B, H * W * C // self.dim, self.dim)
 
         q = self.q(torch.cat([query, cov], dim=1))
-        print('q', q.shape)
 
-        print('key', key.shape)
-        sys.exit()
         k, v = key, value
         x = self.att(q, k, v)
 

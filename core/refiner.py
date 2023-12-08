@@ -144,7 +144,6 @@ class GaussianUpdateBlock(nn.Module):
         inp = torch.cat([inp, features], dim=1)  #C:126+2*mixtures+dim
 
         net = self.gaussian(net, inp)  #(B,128,H,W)
-        print('net', net.shape)
         delta_covs = self.gaussian_head(net)
         up_mask = .25 * self.mask(net)
         return net, delta_covs, up_mask

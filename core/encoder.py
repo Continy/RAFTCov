@@ -22,7 +22,6 @@ class GaussianEncoder(nn.Module):
 
         cor_flo = torch.cat([cor, flo], dim=1)
         out = F.relu(self.conv(cor_flo))
-        print('cov', cov.shape)
         return torch.cat([out, cov], dim=1)  # 126+2*mixtures
 
 
