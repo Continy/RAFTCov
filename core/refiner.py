@@ -28,15 +28,13 @@ class GaussianGRU(nn.Module):
         self.cfg = cfg
         self.iters = cfg.gru_iters
         #downsample x2
-        self.proj = nn.Sequential(nn.Conv2d(64, 64, 3, padding=1),
-                                  nn.ReLU(inplace=True),
-                                  nn.Conv2d(64, 128, 3, padding=1),
-                                  nn.ReLU(inplace=True),
-                                  nn.Conv2d(128, 256, 3, padding=1),
-                                  nn.ReLU(inplace=True))
+        self.proj = nn.Sequential(
+            nn.Conv2d(64, cfg.dim * 2, 3, padding=1),
+            nn.ReLU(inplace=True),
+        )
         self.mem_proj = nn.Conv2d(565, 512, 1, padding=0)
         self.att = AttentionLayer(cfg)
-        self.gaussian = GaussianUpdateBlock(cfg, hidden_dim=cfg.hidden_dim)
+        self.gaussian = GaussianUpdateBlock(cfg, hidden_dim=cfg.dim)
 
     def upsample_flow(self, flow, mask):
         """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination """
@@ -63,7 +61,7 @@ class GaussianGRU(nn.Module):
         covs0 = covs0.repeat(1, self.cfg.mixtures, 1, 1)
         covs1 = covs1.repeat(1, self.cfg.mixtures, 1, 1)
         context = self.proj(context)
-        net, inp = torch.split(context, [128, 128], dim=1)
+        net, inp = torch.split(context, [self.cfg.dim, self.cfg.dim], dim=1)
         net = torch.tanh(net)
         inp = torch.relu(inp)
 
@@ -73,7 +71,7 @@ class GaussianGRU(nn.Module):
         for i in range(self.iters):
 
             cost, key, value = self.att(cost_map, key, value, memory, covs1)
-            corr = torch.cat([cost, cost_map], dim=1)
+            corr = torch.cat([cost, cost_map], dim=1)  #C:4*mixtures+6
             cov = covs1 - covs0
             net, delta_covs, up_mask = self.gaussian(net, inp, corr, cov)
             covs1 = covs0 + delta_covs
@@ -132,19 +130,21 @@ class GaussianUpdateBlock(nn.Module):
         self.cfg = cfg
         self.encoder = GaussianEncoder(cfg)
         self.gaussian = SepConvGRU(hidden_dim=hidden_dim,
-                                   input_dim=128 + hidden_dim * 2 +
-                                   2 * cfg.mixtures - 2)
+                                   input_dim=126 + 2 * cfg.dim +
+                                   2 * cfg.mixtures)
         self.gaussian_head = GaussianHead(hidden_dim,
-                                          hidden_dim=256,
+                                          hidden_dim=hidden_dim,
                                           mixtures=cfg.mixtures)
-        self.mask = nn.Sequential(nn.Conv2d(128, 256, 3, padding=1),
+        self.mask = nn.Sequential(nn.Conv2d(cfg.dim, 256, 3, padding=1),
                                   nn.ReLU(inplace=True),
                                   nn.Conv2d(256, 64 * 9, 1, padding=0))
 
     def forward(self, net, inp, corr, cov):
         features = self.encoder(cov, corr)
-        inp = torch.cat([inp, features], dim=1)  #(B,128+126+2*mixtures,H,W)
+        inp = torch.cat([inp, features], dim=1)  #C:126+2*mixtures+dim
+
         net = self.gaussian(net, inp)  #(B,128,H,W)
+        print('net', net.shape)
         delta_covs = self.gaussian_head(net)
         up_mask = .25 * self.mask(net)
         return net, delta_covs, up_mask

@@ -25,7 +25,7 @@ from core.utils.misc import process_cfg
 from loguru import logger as loguru_logger
 from core.network import Network
 from configs.tartanair import get_cfg
-
+from core.utils.preprocess import preprocess
 # from torch.utils.tensorboard import SummaryWriter
 from core.utils.logger import Logger
 
@@ -106,8 +106,7 @@ def train(cfg):
             param.requires_grad = False
         for param in model.module.netGaussian.parameters():
             param.requires_grad = True
-        optimizer, scheduler = fetch_optimizer(model.module.netGaussian,
-                                               cfg.trainer)
+        optimizer, scheduler = fetch_optimizer(model.module.netGaussian, cfg)
     train_loader = datasets.fetch_dataloader(cfg)
 
     total_steps = 0
@@ -121,7 +120,7 @@ def train(cfg):
         for i_batch, data_blob in enumerate(train_loader):
 
             optimizer.zero_grad()
-            image1, image2, flow, valid = [x.cuda() for x in data_blob]
+            image1, image2, gt_flow, valid = [x.cuda() for x in data_blob]
 
             if cfg.add_noise:
                 stdv = np.random.uniform(0.0, 5.0)
@@ -133,13 +132,19 @@ def train(cfg):
                               0.0, 255.0)
 
             output = {}
-            flow_predictions, covs = model(image1, image2, output)
-            loss, metrics = sequence_loss(flow_predictions, flow, valid, cfg,
-                                          covs)
+            image1, W, H, W_, H_ = preprocess(image1)
+            image2, _, _, _, _ = preprocess(image2)
+            flow, covs = model(image1, image2)
+            flow = F.interpolate(flow,
+                                 size=(H, W),
+                                 mode='bilinear',
+                                 align_corners=False)
+            flow[:, 0, :, :] *= float(W) / float(W_)
+            flow[:, 1, :, :] *= float(H) / float(H_)
+            loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(),
-                                           cfg.trainer.clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip)
             scaler.step(optimizer)
             scheduler.step()
             scaler.update()
@@ -151,7 +156,7 @@ def train(cfg):
 
             total_steps += 1
 
-            if total_steps > cfg.trainer.num_steps:
+            if total_steps > cfg.num_steps:
                 should_keep_training = False
                 break
             if cfg.autosave_freq and total_steps % cfg.autosave_freq == 0 and cfg.log:
@@ -163,7 +168,7 @@ def train(cfg):
         PATH = cfg.log_dir + '/final'
         torch.save(model.state_dict(), PATH)
 
-    PATH = f'checkpoints/big_full.pth'
+    PATH = f'models/GRU.pth'
     torch.save(model.state_dict(), PATH)
 
     return PATH
@@ -174,18 +179,7 @@ if __name__ == '__main__':
     parser.add_argument('--name',
                         default='flowformer',
                         help="name your experiment")
-    parser.add_argument('--stage',
-                        help="determines which dataset to use for training")
-    parser.add_argument('--validation', type=str, nargs='+')
-
-    parser.add_argument('--mixed_precision',
-                        action='store_true',
-                        help='use mixed precision')
-    parser.add_argument('--training_mode',
-                        default='cov',
-                        help='flow or covariance')
     parser.add_argument('--log', action='store_true', help='disable logging')
-    parser.add_argument('--big', action='store_true', help='use big model')
 
     args = parser.parse_args()
 
@@ -197,10 +191,9 @@ if __name__ == '__main__':
         cfg.log = True
     #loguru_logger.info(cfg)
 
-    torch.manual_seed(1234)
-    np.random.seed(1234)
+    torch.manual_seed(cfg.seed)
+    np.random.seed(cfg.seed)
 
-    if not os.path.isdir('checkpoints'):
-        os.mkdir('checkpoints')
+    os.makedirs('models', exist_ok=True)
 
     train(cfg)

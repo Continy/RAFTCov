@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .correlation import correlation  # the custom cost volume layer
+from torch import einsum
+from einops import rearrange
 
 
 def get_emb(sin_inp):
@@ -61,6 +63,36 @@ class PositionalEncoding2D(nn.Module):
         return self.cached_penc
 
 
+class MultiHeadAttention(nn.Module):
+
+    def __init__(self, dim, heads):
+        super(MultiHeadAttention, self).__init__()
+        self.dim = dim
+        self.heads = heads
+        self.scale = (dim / heads)**-0.5
+        self.attend = nn.Softmax(dim=-1)
+
+    def attend_with_rpe(self, Q, K):
+        Q = rearrange(Q, 'b i (heads d) -> b heads i d', heads=self.heads)
+        K = rearrange(K, 'b j (heads d) -> b heads j d', heads=self.heads)
+
+        dots = einsum('bhid, bhjd -> bhij', Q,
+                      K) * self.scale  # (b hw) heads 1 pointnum
+
+        return self.attend(dots)
+
+    def forward(self, Q, K, V):
+        attn = self.attend_with_rpe(Q, K)
+        B, HW, _ = Q.shape
+
+        V = rearrange(V, 'b j (heads d) -> b heads j d', heads=self.heads)
+
+        out = einsum('bhij, bhjd -> bhid', attn, V)
+        out = rearrange(out, 'b heads hw d -> b hw (heads d)', b=B, hw=HW)
+
+        return out
+
+
 class AttentionLayer(nn.Module):
 
     def __init__(self, cfg, dropout=0.):
@@ -73,10 +105,7 @@ class AttentionLayer(nn.Module):
         self.pos = PositionalEncoding2D(cfg.dim)
         self.q, self.k, self.v = nn.Linear(cfg.dim, cfg.dim), nn.Linear(
             512, cfg.dim), nn.Linear(512, cfg.dim)
-        self.att = nn.MultiheadAttention(cfg.dim,
-                                         cfg.num_heads,
-                                         dropout=cfg.dropout,
-                                         batch_first=True)
+        self.att = MultiHeadAttention(cfg.dim, cfg.num_heads)
         self.ffn = nn.Sequential(nn.Linear(cfg.dim, cfg.dim), nn.GELU(),
                                  nn.Dropout(cfg.dropout),
                                  nn.Linear(cfg.dim, cfg.dim),
@@ -99,8 +128,12 @@ class AttentionLayer(nn.Module):
         cov = cov.reshape(B, H * W * C // self.dim, self.dim)
 
         q = self.q(torch.cat([query, cov], dim=1))
+        print('q', q.shape)
+
+        print('key', key.shape)
+        sys.exit()
         k, v = key, value
-        x = self.att(q, k, v)[0]
+        x = self.att(q, k, v)
 
         x = self.proj(torch.cat([x, shortcut], dim=1))
         x = x + self.ffn(self.norm2(x))

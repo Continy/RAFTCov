@@ -1,29 +1,42 @@
 from yacs.config import CfgNode as CN
 
 cfg = CN()
+
 #paths:
-cfg.dataset_path = '/home/zhengwu/data/tartanair_release1/abandonedfactory'
+cfg.stage = 'tartanair'
+cfg.image_size = [480, 640]
+cfg.root = 'D:\\gits\\FlowFormer\\datasets\\abandonedfactory\\Easy\\P001\\'
 cfg.save_path = 'results/P001/'
-cfg.dataset_name = 'tartanair'
 cfg.restore_ckpt = 'models/default'
+cfg.folderlength = 1
+cfg.training_mode = 'cov'
+cfg.seed = 1234
+cfg.log = False
 
 #gaussian:
-cfg.dim = 128
+cfg.dim = 64
 cfg.dropout = 0.1
-cfg.hidden_dim = 128
-cfg.num_heads = 4
+
+cfg.num_heads = 3
 cfg.mixtures = 5
 cfg.gru_iters = 12
 
 #training:
-cfg.scheduler = 'OneCycleLR'
+cfg.mixed_precision = False
 cfg.optimizer = 'adamw'
-cfg.batch_size = 4
-cfg.epochs = 50000
-cfg.lr = 0.0001
+cfg.scheduler = 'OneCycleLR'
+cfg.add_noise = True
+cfg.canonical_lr = 12.5e-5
+cfg.adamw_decay = 1e-5
+cfg.clip = 1.0
+cfg.num_steps = 2000
+cfg.epsilon = 1e-8
+cfg.anneal_strategy = 'linear'
+cfg.batch_size = 2
 cfg.num_workers = 0
-cfg.save_freq = 500
-cfg.weight_decay = 0.0001
+cfg.autosave_freq = 500
+
+cfg.clip = 1.0
 
 #loss
 cfg.gamma = 0.85

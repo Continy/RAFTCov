@@ -79,12 +79,13 @@ def estimate(tenOne, tenTwo):
         size=(intPreprocessedHeight, intPreprocessedWidth),
         mode='bilinear',
         align_corners=False)
-    flownetinput, cov = netNetwork(tenPreprocessedOne, tenPreprocessedTwo)
-    tenFlow = torch.nn.functional.interpolate(input=flownetinput,
+    flow, cov = netNetwork(tenPreprocessedOne, tenPreprocessedTwo)
+    tenFlow = torch.nn.functional.interpolate(input=flow,
                                               size=(intHeight, intWidth),
                                               mode='bilinear',
                                               align_corners=False)
-
+    print(tenFlow.shape)
+    sys.exit()
     tenFlow[:, 0, :, :] *= float(intWidth) / float(intPreprocessedWidth)
     tenFlow[:, 1, :, :] *= float(intHeight) / float(intPreprocessedHeight)
 
