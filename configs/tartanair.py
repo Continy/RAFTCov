@@ -12,7 +12,7 @@ cfg.folderlength = 1
 cfg.training_mode = 'cov'
 cfg.seed = 1234
 cfg.log = False
-
+cfg.sum_freq = 100
 #gaussian:
 cfg.dim = 32
 cfg.dropout = 0.1
