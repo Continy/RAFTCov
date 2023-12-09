@@ -21,6 +21,13 @@ class Network(torch.nn.Module):
         self.netRefiner = Refiner()
 
         self.netGaussian = GaussianGRU(cfg)
+        self.load_state_dict(
+            {
+                strKey.replace('module', 'net'): tenWeight
+                for strKey, tenWeight in torch.load('models/' +
+                                                    'default').items()
+            },
+            strict=False)
 
     def forward(self, tenOne, tenTwo):
         tenOne = self.netExtractor(tenOne)
@@ -28,9 +35,7 @@ class Network(torch.nn.Module):
 
         objEstimate = self.netSix(tenOne[-1], tenTwo[-1], None)
         objEstimate = self.netFiv(tenOne[-2], tenTwo[-2], objEstimate)
-
         objEstimate = self.netFou(tenOne[-3], tenTwo[-3], objEstimate)
-
         objEstimate = self.netThr(tenOne[-4], tenTwo[-4], objEstimate)
         memory = objEstimate['tenFeat']
         cost_map = objEstimate['tenFlow']

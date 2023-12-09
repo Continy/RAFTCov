@@ -34,25 +34,14 @@ for strOption, strArgument in getopt.getopt(
 
 ##########################################################
 
-netNetwork = None
 cfg = get_cfg()
-##########################################################
-Network(cfg).load_state_dict(
-    {
-        strKey.replace('module', 'net'): tenWeight
-        for strKey, tenWeight in torch.load('models/' +
-                                            arguments_strModel).items()
-    },
-    strict=False)
 
 
 ##########################################################
 def estimate(tenOne, tenTwo):
-    global netNetwork
+    global cfg
 
-    if netNetwork is None:
-        netNetwork = Network(cfg).cuda().eval()
-    # end
+    netNetwork = Network(cfg).cuda().eval()
 
     assert (tenOne.shape[1] == tenTwo.shape[1])
     assert (tenOne.shape[2] == tenTwo.shape[2])
@@ -84,8 +73,7 @@ def estimate(tenOne, tenTwo):
                                               size=(intHeight, intWidth),
                                               mode='bilinear',
                                               align_corners=False)
-    print(tenFlow.shape)
-    sys.exit()
+
     tenFlow[:, 0, :, :] *= float(intWidth) / float(intPreprocessedWidth)
     tenFlow[:, 1, :, :] *= float(intHeight) / float(intPreprocessedHeight)
 
