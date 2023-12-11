@@ -87,12 +87,7 @@ def train(cfg):
 
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
-        model.load_state_dict(
-            {
-                strKey.replace('module', 'net'): tenWeight
-                for strKey, tenWeight in torch.load(cfg.restore_ckpt).items()
-            },
-            strict=False)
+        model.load_state_dict(torch.load(cfg.restore_ckpt), strict=False)
 
     model.cuda()
     model.train()

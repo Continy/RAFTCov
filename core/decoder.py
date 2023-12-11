@@ -104,7 +104,7 @@ class AttentionLayer(nn.Module):
         self.proj = nn.Linear(cfg.dim, cfg.dim)
         self.pos = PositionalEncoding2D(cfg.dim)
         self.q, self.k, self.v = nn.Linear(cfg.dim, cfg.dim), nn.Linear(
-            64, cfg.dim), nn.Linear(64, cfg.dim)
+            cfg.dim, cfg.dim), nn.Linear(cfg.dim, cfg.dim)
         self.att = MultiHeadAttention(cfg.dim, cfg.num_heads)
         self.ffn = nn.Sequential(nn.Linear(cfg.dim, cfg.dim), nn.GELU(),
                                  nn.Dropout(cfg.dropout),

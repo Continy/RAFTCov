@@ -1,7 +1,7 @@
 import sys
 import torch
 from .encoder import Encoder
-from .decoder import Decoder, AttentionLayer
+from .decoder import Decoder
 from .refiner import Refiner, GaussianGRU
 
 
@@ -21,15 +21,9 @@ class Network(torch.nn.Module):
         self.netRefiner = Refiner()
 
         self.netGaussian = GaussianGRU(cfg)
-        self.load_state_dict(
-            {
-                strKey.replace('module', 'net'): tenWeight
-                for strKey, tenWeight in torch.load('models/' +
-                                                    'default').items()
-            },
-            strict=False)
 
     def forward(self, tenOne, tenTwo):
+
         tenOne = self.netExtractor(tenOne)
         tenTwo = self.netExtractor(tenTwo)
 
@@ -41,8 +35,8 @@ class Network(torch.nn.Module):
         cost_map = objEstimate['tenFlow']
         objEstimate = self.netTwo(tenOne[-5], tenTwo[-5], objEstimate)
         context = torch.cat([tenOne[-4], tenTwo[-4]], dim=1)
-        #memory = objEstimate
         cov_preds = self.netGaussian(context, memory, cost_map)
+
         return (objEstimate['tenFlow'] +
                 self.netRefiner(objEstimate['tenFeat'])) * 20.0, cov_preds
 

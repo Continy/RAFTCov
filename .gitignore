@@ -4,3 +4,5 @@ __pycache__
 models
 *.yaml
 cov.png
+datasets
+results

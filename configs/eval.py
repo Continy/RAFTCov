@@ -7,19 +7,19 @@ cfg.stage = 'tartanair'
 cfg.image_size = [480, 640]
 cfg.root = 'D:\\gits\\FlowFormer\\datasets\\abandonedfactory\\Easy\\P001\\'
 cfg.save_path = 'results/P001/'
-cfg.restore_ckpt = 'models/60001_flowformer.pth'
+cfg.restore_ckpt = 'models/default'
 cfg.folderlength = 1
 cfg.training_mode = 'cov'
-cfg.seed = 2568
+cfg.seed = 1234
 cfg.log = False
 cfg.sum_freq = 100
 #gaussian:
 cfg.dim = 64
-cfg.dropout = 0.1
+cfg.dropout = 0.0
 
 cfg.num_heads = 4
 cfg.mixtures = 4
-cfg.gru_iters = 12
+cfg.gru_iters = 1
 
 #training:
 cfg.mixed_precision = True
@@ -31,9 +31,9 @@ cfg.adamw_decay = 1e-5
 cfg.num_steps = 120000
 cfg.epsilon = 1e-8
 cfg.anneal_strategy = 'linear'
-cfg.batch_size = 8
+cfg.batch_size = 1
 cfg.num_workers = 0
-cfg.autosave_freq = 5000
+cfg.autosave_freq = 500
 cfg.training_viz = False
 cfg.clip = 1.0
 
