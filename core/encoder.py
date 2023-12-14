@@ -21,7 +21,7 @@ class GaussianEncoder(nn.Module):
         flo = F.relu(self.convf2(flo))
 
         cor_flo = torch.cat([cor, flo], dim=1)
-        out = F.relu(self.conv(cor_flo))
+        out = self.conv(cor_flo)
         return torch.cat([out, cov], dim=1)  # 126+2*mixtures
 
 

@@ -63,7 +63,7 @@ class GaussianGRU(nn.Module):
         context = self.proj(context)
         net, inp = torch.split(context, [self.cfg.dim, self.cfg.dim], dim=1)
         net = torch.tanh(net)
-        inp = torch.relu(inp)
+        inp = torch.nn.LeakyReLU(inplace=False, negative_slope=0.1)(inp)
 
         key, value = None, None
         up_mask = None
@@ -85,10 +85,9 @@ class GaussianHead(nn.Module):
         super(GaussianHead, self).__init__()
         self.conv1 = nn.Conv2d(input_dim, hidden_dim, 3, padding=1)
         self.conv2 = nn.Conv2d(hidden_dim, 2 * mixtures, 3, padding=1)
-        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        return self.conv2(self.relu(self.conv1(x)))
+        return self.conv2(self.conv1(x))
 
 
 class SepConvGRU(nn.Module):
