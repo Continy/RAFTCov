@@ -157,7 +157,7 @@ class TartanAir(FlowDataset):
                         self.image_list += [[images[i], images[i + 1]]]
 
 
-def fetch_dataloader(args, TRAIN_DS='C+T+K+S+H'):
+def fetch_dataloader(args):
     """ Create the data loader for the corresponding trainign set """
     if args.stage == 'tartanair':
         aug_params = {

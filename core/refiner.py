@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .encoder import GaussianEncoder
-from .decoder import AttentionLayer
+from .encoder import GaussianEncoder, CorrBlock
 
 
 def coords_grid(batch, ht, wd):
@@ -27,13 +26,10 @@ class GaussianGRU(nn.Module):
         super(GaussianGRU, self).__init__()
         self.cfg = cfg
         self.iters = cfg.gru_iters
-        #downsample x2
-        self.proj = nn.Sequential(
-            nn.Conv2d(128, cfg.dim * 2, 3, padding=1),
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(64, cfg.dim * 2, 3, padding=1),
             nn.ReLU(inplace=True),
         )
-        self.mem_proj = nn.Conv2d(597, 64, 1, padding=0)
-        self.att = AttentionLayer(cfg)
         self.gaussian = GaussianUpdateBlock(cfg, hidden_dim=cfg.dim)
 
     def upsample_flow(self, flow, mask):
@@ -50,27 +46,21 @@ class GaussianGRU(nn.Module):
         up_flow = up_flow.permute(0, 1, 4, 2, 5, 3)
         return up_flow.reshape(N, C, 8 * H, 8 * W)
 
-    def forward(self, context, memory, cost_map):
+    def forward(self, fmap1, fmap2, cnet):
         cov_preds = []
-        # print('context', context.shape)  #(1,32,224,512)
-        # print('memory', memory.shape)  #(1,565,112,256)
-        # print('cost_map', cost_map.shape)  #(1,2,112,256)
-        memory = self.mem_proj(memory)
-        memory = memory.permute(0, 2, 3, 1)  #(1,112,256,512)
-        covs0, covs1 = initialize_flow(context)
-        covs0 = covs0.repeat(1, self.cfg.mixtures, 1, 1)
-        covs1 = covs1.repeat(1, self.cfg.mixtures, 1, 1)
-        context = self.proj(context)
-        net, inp = torch.split(context, [self.cfg.dim, self.cfg.dim], dim=1)
+        corr_fn = CorrBlock(fmap1, fmap2)
+        covs0, covs1 = initialize_flow(fmap1[2])
+        # covs0 = covs0.repeat(1, self.cfg.mixtures, 1, 1)
+        # covs1 = covs1.repeat(1, self.cfg.mixtures, 1, 1)
+        cnet = self.conv1(cnet)
+        net, inp = torch.split(cnet, [self.cfg.dim, self.cfg.dim], dim=1)
         net = torch.tanh(net)
         inp = torch.nn.LeakyReLU(inplace=False, negative_slope=0.1)(inp)
-
-        key, value = None, None
         up_mask = None
 
         for i in range(self.iters):
-            cost, key, value = self.att(cost_map, key, value, memory, covs1)
-            corr = torch.cat([cost, cost_map], dim=1)  #C:4*mixtures+6
+            covs1 = covs1.detach()
+            corr = corr_fn(covs1)
             cov = covs1 - covs0
             net, delta_covs, up_mask = self.gaussian(net, inp, corr, cov)
             covs1 = covs0 + delta_covs
@@ -84,7 +74,7 @@ class GaussianHead(nn.Module):
     def __init__(self, input_dim=128, hidden_dim=256, mixtures=9):
         super(GaussianHead, self).__init__()
         self.conv1 = nn.Conv2d(input_dim, hidden_dim, 3, padding=1)
-        self.conv2 = nn.Conv2d(hidden_dim, 2 * mixtures, 3, padding=1)
+        self.conv2 = nn.Conv2d(hidden_dim, 2, 3, padding=1)
 
     def forward(self, x):
         return self.conv2(self.conv1(x))
@@ -127,9 +117,7 @@ class GaussianUpdateBlock(nn.Module):
         super().__init__()
         self.cfg = cfg
         self.encoder = GaussianEncoder(cfg)
-        self.gaussian = SepConvGRU(hidden_dim=hidden_dim,
-                                   input_dim=126 + 2 * cfg.dim +
-                                   2 * cfg.mixtures)
+        self.gaussian = SepConvGRU(hidden_dim=hidden_dim, input_dim=384)
         self.gaussian_head = GaussianHead(hidden_dim,
                                           hidden_dim=hidden_dim,
                                           mixtures=cfg.mixtures)

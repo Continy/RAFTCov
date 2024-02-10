@@ -25,7 +25,7 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds):
         cov.view(cov.shape[0], 2, cov.shape[1] // 2, cov.shape[2],
                  cov.shape[3]) for cov in cov_preds
     ]
-    cov_preds = [cov.mean(dim=2) for cov in cov_preds]
+    cov_preds = [cov.norm(dim=1, p=2) for cov in cov_preds]
     for i in range(n_predictions):
         i_weight = gamma**(n_predictions - i - 1)
         i_loss = mse_loss / (2 * torch.exp(2 * cov_preds[i])) + cov_preds[i]

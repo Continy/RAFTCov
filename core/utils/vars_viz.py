@@ -33,8 +33,7 @@ def heatmap(data):
 
 def colorbar(data):
     colors = [
-        '#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf',
-        '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'
+        '#ffffff', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'
     ]
     cmap = mcolors.ListedColormap(colors)
     data[data > 1] = 1
