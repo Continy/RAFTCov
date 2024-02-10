@@ -98,11 +98,10 @@ def train(cfg):
         optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
     if cfg.training_mode == 'cov':
         #freeze the FlowFormer
-        for param in model.parameters():
+        for param in model.module.feature.pwc.parameters():
             param.requires_grad = False
-        for param in model.module.netGaussian.parameters():
-            param.requires_grad = True
-        optimizer, scheduler = fetch_optimizer(model.module.netGaussian, cfg)
+
+        optimizer, scheduler = fetch_optimizer(model, cfg)
     train_loader = datasets.fetch_dataloader(cfg)
 
     total_steps = 0
@@ -161,7 +160,7 @@ def train(cfg):
         PATH = cfg.log_dir + '/final'
         torch.save(model.state_dict(), PATH)
 
-    PATH = f'models/GRU.pth'
+    PATH = f'models/{cfg.savename}.pth'
     torch.save(model.state_dict(), PATH)
 
     return PATH
