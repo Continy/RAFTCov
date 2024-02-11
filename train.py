@@ -149,10 +149,11 @@ def train(cfg):
             if cfg.log:
                 metrics.update(output)
                 logger.push(metrics)
-            if cfg.wandb and wandb:
-                wandb.log(metrics)
+
             if total_steps % 5 == 0:
                 print("Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
+                if cfg.wandb and wandb:
+                    wandb.log(metrics)
 
             total_steps += 1
 
