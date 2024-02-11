@@ -16,10 +16,11 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds):
     cov_loss = torch.zeros_like(flow_gt)
 
     mag = torch.sum(flow_gt**2, dim=1).sqrt()
-    valid = (valid >= 0.5) & (mag < max_cov)
+    valid = (valid >= 0.5) & (mag < 50)
 
     mse_loss = (flow_pred - flow_gt)**2
-    mse_loss += (valid[:, None] * mse_loss)
+    mse_loss = (valid[:, None] * mse_loss)
+    valid = (valid >= 0.5) & (torch.sum(cov_preds[-1]**2, dim=1).sqrt() < 50)
     #mse_loss = torch.mean(mse_loss, dim=1)
     cov_preds = [
         cov.view(cov.shape[0], 2, cov.shape[1] // 2, cov.shape[2],
@@ -37,6 +38,9 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds):
             dim=0).squeeze_(0).squeeze_(0).detach().cpu()
         from utils.vars_viz import heatmap
         cv2.imwrite('cov.png', heatmap(viz))
+        mse = mse_loss.mean(dim=0).mean(
+            dim=0).squeeze_(0).squeeze_(0).detach().cpu()
+        cv2.imwrite('mse.png', heatmap(mse))
 
     metrics = {
         'cov': cov.float().mean().item(),
