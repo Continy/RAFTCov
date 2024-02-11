@@ -130,7 +130,7 @@ def train(cfg):
             image1, W, H, W_, H_ = preprocess(image1)
             image2, _, _, _, _ = preprocess(image2)
             flow, covs = model(image1, image2)
-            flow = reverse(flow, W, H, W_, H_)
+            flow = reverse(flow, W, H, W_, H_, is_flow=True)
             covs = [reverse(cov, W, H, W_, H_) for cov in covs]
 
             loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)

@@ -371,5 +371,5 @@ class PWCDCNet(nn.Module):
 
         x = self.dc_conv4(self.dc_conv3(self.dc_conv2(self.dc_conv1(x))))
         flow2 = flow2 + self.dc_conv7(self.dc_conv6(self.dc_conv5(x)))
-
+        flow2 = flow2 * self.flow_norm
         return flow2, tenOne, tenTwo

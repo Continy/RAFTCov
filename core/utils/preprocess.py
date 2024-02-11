@@ -21,8 +21,9 @@ def preprocess(img):
     return img, W, H, W_, H_
 
 
-def reverse(img, W, H, W_, H_):
+def reverse(img, W, H, W_, H_,is_flow = False):
     img = F.interpolate(img, size=(H, W), mode='bilinear', align_corners=False)
-    img[:, 0, :, :] *= float(W) / float(W_)
-    img[:, 1, :, :] *= float(H) / float(H_)
+    if is_flow:
+        img[:, 0, :, :] *= float(W) / float(W_)
+        img[:, 1, :, :] *= float(H) / float(H_)
     return img
