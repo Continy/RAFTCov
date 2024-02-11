@@ -51,6 +51,11 @@ except:
             pass
 
 
+try:
+    import wandb
+except:
+    print("wandb not installed, --wandb flag ignored")
+    wandb = False
 from torch.utils.data import dataloader
 from torch.multiprocessing import reductions
 from multiprocessing.reduction import ForkingPickler
@@ -108,7 +113,8 @@ def train(cfg):
     scaler = GradScaler(enabled=cfg.mixed_precision)
     if cfg.log:
         logger = Logger(model, scheduler, cfg)
-
+    if cfg.wandb and wandb:
+        wandb.init(project='RAFTCov', name=cfg.name, config=cfg)
     should_keep_training = True
     while should_keep_training:
 
@@ -143,6 +149,8 @@ def train(cfg):
             if cfg.log:
                 metrics.update(output)
                 logger.push(metrics)
+            if cfg.wandb and wandb:
+                wandb.log(metrics)
             if total_steps % 5 == 0:
                 print("Iter: %d, Loss: %.4f" % (total_steps, loss.item()))
 
@@ -169,9 +177,14 @@ def train(cfg):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--name',
-                        default='flowformer',
+                        default='RAFTCov',
                         help="name your experiment")
-    parser.add_argument('--log', action='store_true', help='disable logging')
+    parser.add_argument('--log',
+                        action='store_true',
+                        help='enable tensorboard logging')
+    parser.add_argument('--wandb',
+                        action='store_true',
+                        help='enable wandb logging')
 
     args = parser.parse_args()
 
