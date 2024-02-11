@@ -20,7 +20,8 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds):
 
     mse_loss = (flow_pred - flow_gt)**2
     mse_loss = (valid[:, None] * mse_loss)
-    valid = (valid >= 0.5) & (torch.sum(cov_preds[-1]**2, dim=1).sqrt() < 50)
+    valid = (valid >= 0.5) & (torch.sum(cov_preds[-1]**2, dim=1).sqrt()
+                              < max_cov)
     #mse_loss = torch.mean(mse_loss, dim=1)
     cov_preds = [
         cov.view(cov.shape[0], 2, cov.shape[1] // 2, cov.shape[2],
@@ -44,6 +45,7 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds):
 
     metrics = {
         'cov': cov.float().mean().item(),
+        'sqrt_cov': cov.sqrt().float().mean().item(),
         'cov_loss': cov_loss.float().mean().item(),
         'mse_loss': mse_loss.float().mean().item()
     }

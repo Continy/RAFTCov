@@ -30,7 +30,7 @@ cfg.optimizer = 'adamw'
 cfg.scheduler = 'OneCycleLR'
 cfg.add_noise = True
 cfg.canonical_lr = 12.5e-5
-cfg.adamw_decay = 1e-4
+cfg.adamw_decay = 1e-5
 cfg.num_steps = 120000
 cfg.epsilon = 1e-8
 cfg.anneal_strategy = 'linear'
@@ -38,7 +38,7 @@ cfg.batch_size = 8
 cfg.num_workers = 0
 cfg.autosave_freq = 5000
 cfg.training_viz = False
-cfg.clip = 1.0
+cfg.clip = 0.5
 
 #loss
 cfg.gamma = 0.85
