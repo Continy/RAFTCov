@@ -159,10 +159,11 @@ def train(cfg):
             if total_steps > cfg.num_steps:
                 should_keep_training = False
                 break
-            if cfg.autosave_freq and total_steps % cfg.autosave_freq == 0 and cfg.log:
-                PATH = '%s/%d_%s.pth' % (cfg.log_dir, total_steps + 1,
-                                         cfg.name)
-                torch.save(model.state_dict(), PATH)
+            if cfg.autosave_freq and total_steps % cfg.autosave_freq == 0:
+                if cfg.log or cfg.wandb:
+                    PATH = '%s/%d_%s.pth' % (cfg.log_dir, total_steps + 1,
+                                             cfg.name)
+                    torch.save(model.state_dict(), PATH)
     if cfg.log:
         logger.close()
         PATH = cfg.log_dir + '/final'
