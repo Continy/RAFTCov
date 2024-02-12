@@ -8,7 +8,7 @@ from PWCFlowNet import PWCFeature
 class RAFTCovWithPWCNet(torch.nn.Module):
 
     def __init__(self, cfg):
-        super(RAFTCovWithPWCNet).__init__()
+        super(RAFTCovWithPWCNet, self).__init__()
 
         self.feature = PWCFeature()
         self.netGaussian = GaussianGRU(cfg)
