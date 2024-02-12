@@ -64,9 +64,9 @@ class GaussianGRU(nn.Module):
             cov = covs1 - covs0
             net, delta_covs, up_mask = self.gaussian(net, inp, corr, cov)
             covs1 = covs0 + delta_covs
-            cov_up = self.upsample_flow(covs1 - covs0, up_mask)
+            cov_up = self.upsample_flow(covs1 - covs0, up_mask) * 20.0
             cov_preds.append(cov_up)
-        return cov_preds * 20.0
+        return cov_preds
 
 
 class GaussianHead(nn.Module):
