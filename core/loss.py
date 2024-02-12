@@ -21,12 +21,6 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds, method='norm'):
     mse_loss = (flow_pred - flow_gt)**2
     mse_loss = (valid[:, None] * mse_loss)
 
-    #mse_loss = torch.mean(mse_loss, dim=1)
-
-    if method == 'norm':
-        cov_preds = [cov.norm(dim=1, p=2) for cov in cov_preds]
-    if method == 'mean':
-        cov_preds = [cov.mean(dim=1) for cov in cov_preds]
     for i in range(n_predictions):
         i_weight = gamma**(n_predictions - i - 1)
         i_loss = mse_loss / (2 * torch.exp(2 * cov_preds[i])) + cov_preds[i]
@@ -34,7 +28,8 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds, method='norm'):
 
     cov = torch.exp(2 * torch.mean(torch.stack(cov_preds, dim=0), dim=0))
     if cfg.training_viz:
-        viz = cov.mean(dim=0).squeeze_(0).squeeze_(0).detach().cpu()
+        viz = cov.mean(dim=0).mean(
+            dim=0).squeeze_(0).squeeze_(0).detach().cpu()
         from utils.vars_viz import heatmap
         cv2.imwrite('cov.png', heatmap(viz))
         mse = mse_loss.mean(dim=0).mean(
