@@ -8,13 +8,14 @@ cfg.image_size = [480, 640]
 cfg.root = 'D:\\gits\\FlowFormer\\datasets\\abandonedfactory\\Easy\\P001\\'
 cfg.save_path = 'results/P001/'
 cfg.restore_ckpt = 'models/default'
+cfg.tartanvo_model = None
 cfg.folderlength = 1
 cfg.training_mode = 'cov'
 cfg.seed = 1234
 cfg.log = False
 cfg.sum_freq = 100
 #gaussian:
-cfg.dim = 64
+cfg.dim = 128
 cfg.dropout = 0.0
 
 cfg.num_heads = 4

@@ -115,6 +115,7 @@ def train(cfg):
         logger = Logger(model, scheduler, cfg)
     if cfg.wandb and wandb:
         wandb.init(project='RAFTCov', name=cfg.name, config=cfg)
+        wandb.watch(model, log='all')
     should_keep_training = True
     while should_keep_training:
 
@@ -139,7 +140,12 @@ def train(cfg):
             flow = reverse(flow, W, H, W_, H_, is_flow=True)
             covs = [reverse(cov, W, H, W_, H_) for cov in covs]
 
-            loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)
+            loss, metrics = sequence_loss(flow,
+                                          gt_flow,
+                                          valid,
+                                          cfg,
+                                          covs,
+                                          method=cfg.loss_method)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip)

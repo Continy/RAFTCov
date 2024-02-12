@@ -38,11 +38,12 @@ cfg.batch_size = 8
 cfg.num_workers = 0
 cfg.autosave_freq = 5000
 cfg.training_viz = False
-cfg.clip = 0.5
+cfg.clip = 1.2
+cfg.loss_method = 'mean'
 
 #loss
 cfg.gamma = 0.85
-cfg.max_cov = 50
+cfg.max_cov = 200
 
 
 def get_cfg():

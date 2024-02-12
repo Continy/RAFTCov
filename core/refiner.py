@@ -66,7 +66,7 @@ class GaussianGRU(nn.Module):
             covs1 = covs0 + delta_covs
             cov_up = self.upsample_flow(covs1 - covs0, up_mask)
             cov_preds.append(cov_up)
-        return cov_preds
+        return cov_preds * 20.0
 
 
 class GaussianHead(nn.Module):
@@ -122,7 +122,9 @@ class GaussianUpdateBlock(nn.Module):
                                           hidden_dim=hidden_dim,
                                           mixtures=cfg.mixtures)
         self.mask = nn.Sequential(nn.Conv2d(cfg.dim, 256, 3, padding=1),
-                                  nn.ReLU(inplace=True),
+                                  nn.LeakyReLU(),
+                                  nn.Conv2d(256, 256, 1, padding=0),
+                                  nn.LeakyReLU(),
                                   nn.Conv2d(256, 64 * 9, 1, padding=0))
 
     def forward(self, net, inp, corr, cov):
