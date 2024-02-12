@@ -198,7 +198,7 @@ if __name__ == '__main__':
 
     cfg = get_cfg()
     cfg.update(vars(args))
-    if args.log:
+    if args.log or args.wandb:
         process_cfg(cfg)
         loguru_logger.add(str(Path(cfg.log_dir) / 'log.txt'), encoding="utf8")
         cfg.log = True
