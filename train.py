@@ -96,17 +96,17 @@ def train(cfg):
 
     model.cuda()
     model.train()
-    if cfg.training_mode == 'flow':
-        #freeze the Covariance Decoder
-        for param in model.module.netGaussian.parameters():
-            param.requires_grad = False
-        optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
-    if cfg.training_mode == 'cov':
-        #freeze the FlowFormer
-        for param in model.module.feature.pwc.parameters():
-            param.requires_grad = False
+    # if cfg.training_mode == 'flow':
+    #     #freeze the Covariance Decoder
+    #     for param in model.module.netGaussian.parameters():
+    #         param.requires_grad = False
+    #     optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
+    # if cfg.training_mode == 'cov':
+    #     #freeze the FlowFormer
+    #     for param in model.module.feature.pwc.parameters():
+    #         param.requires_grad = False
 
-        optimizer, scheduler = fetch_optimizer(model, cfg)
+    optimizer, scheduler = fetch_optimizer(model, cfg)
     train_loader = datasets.fetch_dataloader(cfg)
 
     total_steps = 0
@@ -139,7 +139,7 @@ def train(cfg):
             #with torch.autocast('cuda'):
             flow, covs = model(image1, image2)
             flow = reverse(flow, W, H, W_, H_, is_flow=True)
-            covs = [reverse(cov, W, H, W_, H_) for cov in covs]
+            covs = [reverse(cov, W, H, W_, H_,is_flow=True) for cov in covs]
 
             loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)
             scaler.scale(loss).backward()

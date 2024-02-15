@@ -28,20 +28,21 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds):
     cov_preds = [cov.mean(dim=2) for cov in cov_preds]
     for i in range(n_predictions):
         i_weight = gamma**(n_predictions - i - 1)
-        i_loss = mse_loss / (2 * torch.exp(2 * cov_preds[i])) + cov_preds[i]
+        #i_loss = mse_loss / (2 * torch.exp(2 * cov_preds[i])) + cov_preds[i]
+        i_loss = (cov_preds[i]-flow_gt).abs()
         cov_loss += valid[:, None] * i_weight * i_loss
 
-    cov = torch.exp(2 * torch.mean(torch.stack(cov_preds, dim=0), dim=0))
-    if cfg.training_viz:
-        viz = cov.mean(dim=0).mean(
-            dim=0).squeeze_(0).squeeze_(0).detach().cpu()
-        from utils.vars_viz import heatmap
-        cv2.imwrite('cov.png', heatmap(viz))
+    #cov = torch.exp(2 * torch.mean(torch.stack(cov_preds, dim=0), dim=0))
+    # if cfg.training_viz:
+    #     viz = cov.mean(dim=0).mean(
+    #         dim=0).squeeze_(0).squeeze_(0).detach().cpu()
+    #     from utils.vars_viz import heatmap
+    #     cv2.imwrite('cov.png', heatmap(viz))
 
     metrics = {
-        'cov': cov.float().mean().item(),
-        'sqrt_cov': cov.sqrt().float().mean().item(),
-        'cov_loss': cov_loss.float().mean().item(),
-        'mse_loss': mse_loss.float().mean().item()
+        'flow': cov_loss.float().mean().item(),
+        # 'sqrt_cov': cov.sqrt().float().mean().item(),
+        # 'cov_loss': cov_loss.float().mean().item(),
+        # 'mse_loss': mse_loss.float().mean().item()
     }
     return cov_loss.mean(), metrics
