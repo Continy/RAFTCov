@@ -136,8 +136,8 @@ def train(cfg):
             output = {}
             image1, W, H, W_, H_ = preprocess(image1)
             image2, _, _, _, _ = preprocess(image2)
-            with torch.autocast('cuda'):
-                flow, covs = model(image1, image2)
+            #with torch.autocast('cuda'):
+            flow, covs = model(image1, image2)
             flow = reverse(flow, W, H, W_, H_, is_flow=True)
             covs = [reverse(cov, W, H, W_, H_) for cov in covs]
 
