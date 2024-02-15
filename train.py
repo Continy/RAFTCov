@@ -23,8 +23,8 @@ from core.loss import sequence_loss
 from core.optimizer import fetch_optimizer
 from core.utils.misc import process_cfg
 from loguru import logger as loguru_logger
-from core.network import RAFTCovWithPWCNet as Network
-from configs.tartanair import get_cfg
+from core.network import MonoCovWithFasterViT as Network
+from configs.tartanair_small import get_cfg
 from core.utils.preprocess import preprocess, reverse
 # from torch.utils.tensorboard import SummaryWriter
 from core.utils.logger import Logger
@@ -140,12 +140,7 @@ def train(cfg):
             flow = reverse(flow, W, H, W_, H_, is_flow=True)
             covs = [reverse(cov, W, H, W_, H_) for cov in covs]
 
-            loss, metrics = sequence_loss(flow,
-                                          gt_flow,
-                                          valid,
-                                          cfg,
-                                          covs,
-                                          method=cfg.loss_method)
+            loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip)

@@ -47,17 +47,6 @@ class PWCFeature(nn.Module):
     def __init__(self, md=4, flow_norm=20.0):
         super(PWCFeature, self).__init__()
         # cnet
-
-        self.Cconv1a = conv(3, 16, kernel_size=3, stride=2)
-        self.Cconv1aa = conv(16, 16, kernel_size=3, stride=1)
-        self.Cconv1b = conv(16, 16, kernel_size=3, stride=1)
-        self.Cconv2a = conv(16, 32, kernel_size=3, stride=2)
-        self.Cconv2aa = conv(32, 32, kernel_size=3, stride=1)
-        self.Cconv2b = conv(32, 32, kernel_size=3, stride=1)
-        self.Cconv3a = conv(32, 64, kernel_size=3, stride=2)
-        self.Cconv3aa = conv(64, 64, kernel_size=3, stride=1)
-        self.Cconv3b = conv(64, 64, kernel_size=3, stride=1)
-
         self.pwc = PWCDCNet(md=md, flow_norm=flow_norm)
 
     def load_tartanvo_weight(self, path):
@@ -75,24 +64,10 @@ class PWCFeature(nn.Module):
 
         self.pwc.load_state_dict(converted_checkpoint)
 
-    def init_cnet(self):
-        # copy weights from pwc-net
-        self.Cconv1a.load_state_dict(self.pwc.conv1a.state_dict())
-        self.Cconv1aa.load_state_dict(self.pwc.conv1aa.state_dict())
-        self.Cconv1b.load_state_dict(self.pwc.conv1b.state_dict())
-        self.Cconv2a.load_state_dict(self.pwc.conv2a.state_dict())
-        self.Cconv2aa.load_state_dict(self.pwc.conv2aa.state_dict())
-        self.Cconv2b.load_state_dict(self.pwc.conv2b.state_dict())
-        self.Cconv3a.load_state_dict(self.pwc.conv3a.state_dict())
-        self.Cconv3aa.load_state_dict(self.pwc.conv3aa.state_dict())
-        self.Cconv3b.load_state_dict(self.pwc.conv3b.state_dict())
-
     def forward(self, img1, img2):
-        c11 = self.Cconv1b(self.Cconv1aa(self.Cconv1a(img1)))
-        c12 = self.Cconv2b(self.Cconv2aa(self.Cconv2a(c11)))
-        cnet = self.Cconv3b(self.Cconv3aa(self.Cconv3a(c12)))
-        flow, tenOne, tenTwo = self.pwc([img1, img2])
-        return flow, tenOne, tenTwo, cnet
+
+        flow, mem = self.pwc([img1, img2])
+        return flow, mem
 
 
 class PWCDCNet(nn.Module):
@@ -296,10 +271,6 @@ class PWCDCNet(nn.Module):
         c16 = self.conv6b(self.conv6a(self.conv6aa(c15)))
         c26 = self.conv6b(self.conv6a(self.conv6aa(c25)))
 
-        # tenOne, tenTwo
-        tenOne = [c11, c12, c13, c14, c15, c16]
-        tenTwo = [c21, c22, c23, c24, c25, c26]
-
         # corr6 = self.corr(c16, c26)
         corr6 = FunctionCorrelation(tenFirst=c16, tenSecond=c26)
 
@@ -338,6 +309,7 @@ class PWCDCNet(nn.Module):
         x = torch.cat((self.conv4_2(x), x), 1)
         x = torch.cat((self.conv4_3(x), x), 1)
         x = torch.cat((self.conv4_4(x), x), 1)
+
         flow4 = self.predict_flow4(x)
         up_flow4 = self.deconv4(flow4)
         up_feat4 = self.upfeat4(x)
@@ -357,6 +329,9 @@ class PWCDCNet(nn.Module):
         up_flow3 = self.deconv3(flow3)
         up_feat3 = self.upfeat3(x)
 
+        context = torch.cat([c13, c23], dim=1)
+        mem2 = x
+
         warp2 = self.warp(c22, up_flow3 * 5.0)
         # corr2 = self.corr(c12, warp2)
         corr2 = FunctionCorrelation(tenFirst=c12, tenSecond=warp2)
@@ -368,8 +343,8 @@ class PWCDCNet(nn.Module):
         x = torch.cat((self.conv2_3(x), x), 1)
         x = torch.cat((self.conv2_4(x), x), 1)
         flow2 = self.predict_flow2(x)
-
+        mem3 = x
         x = self.dc_conv4(self.dc_conv3(self.dc_conv2(self.dc_conv1(x))))
         flow2 = flow2 + self.dc_conv7(self.dc_conv6(self.dc_conv5(x)))
         flow2 = flow2 * self.flow_norm
-        return flow2, tenOne, tenTwo
+        return flow2, [mem3, context, mem2]  #memory,context,costmap

@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .encoder import GaussianEncoder, CorrBlock
+from .attention import AttentionLayer
+from .encoder import *
 
 
 def coords_grid(batch, ht, wd):
@@ -26,11 +27,18 @@ class GaussianGRU(nn.Module):
         super(GaussianGRU, self).__init__()
         self.cfg = cfg
         self.iters = cfg.gru_iters
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(64, cfg.dim * 2, 3, padding=1),
+        #downsample x2
+        self.proj = nn.Sequential(
+            nn.Conv2d(128, cfg.dim * 2, 3, padding=1),
             nn.ReLU(inplace=True),
         )
+        self.mem_proj = nn.Conv2d(565, 128, 1, padding=0)
+        self.context_proj = nn.Conv2d(128, 256, 1, padding=0)
+        self.costmap_proj = nn.Conv2d(597, 256, 1, padding=0)
+        self.att = AttentionLayer(cfg)
         self.gaussian = GaussianUpdateBlock(cfg, hidden_dim=cfg.dim)
+        self.MemoryEncoder, self.ContextEncoder, self.CostMapEncoder = MemoryEncoder(
+        ), ContextEncoder(), CostMapEncoder()
 
     def upsample_flow(self, flow, mask):
         """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination """
@@ -46,21 +54,30 @@ class GaussianGRU(nn.Module):
         up_flow = up_flow.permute(0, 1, 4, 2, 5, 3)
         return up_flow.reshape(N, C, 8 * H, 8 * W)
 
-    def forward(self, fmap1, fmap2, cnet):
+    def forward(self, mem):
+        memory = self.mem_proj(mem[0])
+        context = self.context_proj(mem[1])
+        cost_map = self.costmap_proj(mem[2])
+        memory, context, cost_map = self.MemoryEncoder(
+            memory), self.ContextEncoder(context), self.CostMapEncoder(
+                cost_map)
         cov_preds = []
-        corr_fn = CorrBlock(fmap1, fmap2)
-        covs0, covs1 = initialize_flow(fmap1[2])
-        # covs0 = covs0.repeat(1, self.cfg.mixtures, 1, 1)
-        # covs1 = covs1.repeat(1, self.cfg.mixtures, 1, 1)
-        cnet = self.conv1(cnet)
-        net, inp = torch.split(cnet, [self.cfg.dim, self.cfg.dim], dim=1)
+
+        memory = memory.permute(0, 2, 3, 1)
+        covs0, covs1 = initialize_flow(context)
+        covs0 = covs0.repeat(1, self.cfg.mixtures, 1, 1)
+        covs1 = covs1.repeat(1, self.cfg.mixtures, 1, 1)
+
+        net, inp = torch.split(context, [self.cfg.dim, self.cfg.dim], dim=1)
         net = torch.tanh(net)
         inp = torch.nn.LeakyReLU(inplace=False, negative_slope=0.1)(inp)
+
+        key, value = None, None
         up_mask = None
 
         for i in range(self.iters):
-            covs1 = covs1.detach()
-            corr = corr_fn(covs1)
+            cost, key, value = self.att(cost_map, key, value, memory, covs1)
+            corr = torch.cat([cost, cost_map], dim=1)  #C:4*mixtures+6
             cov = covs1 - covs0
             net, delta_covs, up_mask = self.gaussian(net, inp, corr, cov)
             covs1 = covs0 + delta_covs
@@ -74,7 +91,7 @@ class GaussianHead(nn.Module):
     def __init__(self, input_dim=128, hidden_dim=256, mixtures=9):
         super(GaussianHead, self).__init__()
         self.conv1 = nn.Conv2d(input_dim, hidden_dim, 3, padding=1)
-        self.conv2 = nn.Conv2d(hidden_dim, 2, 3, padding=1)
+        self.conv2 = nn.Conv2d(hidden_dim, 2 * mixtures, 3, padding=1)
 
     def forward(self, x):
         return self.conv2(self.conv1(x))
@@ -111,98 +128,48 @@ class SepConvGRU(nn.Module):
         return h
 
 
+class GaussianEncoder(nn.Module):
+
+    def __init__(self, cfg):
+        super(GaussianEncoder, self).__init__()
+
+        self.convc1 = nn.Conv2d(4 * cfg.mixtures + 768, 256, 1, padding=0)
+        self.convc2 = nn.Conv2d(256, 192, 3, padding=1)
+        self.convf1 = nn.Conv2d(2 * cfg.mixtures, 128, 7, padding=3)
+        self.convf2 = nn.Conv2d(128, 64, 3, padding=1)
+        self.conv = nn.Conv2d(64 + 192, 128 - 2, 3, padding=1)
+
+    def forward(self, cov, corr):
+        cor = F.relu(self.convc1(corr))
+        cor = F.relu(self.convc2(cor))
+        flo = F.relu(self.convf1(cov))
+        flo = F.relu(self.convf2(flo))
+
+        cor_flo = torch.cat([cor, flo], dim=1)
+        out = self.conv(cor_flo)
+        return torch.cat([out, cov], dim=1)  # 126+2*mixtures
+
+
 class GaussianUpdateBlock(nn.Module):
 
     def __init__(self, cfg, hidden_dim=128):
         super().__init__()
         self.cfg = cfg
         self.encoder = GaussianEncoder(cfg)
-        self.gaussian = SepConvGRU(hidden_dim=hidden_dim, input_dim=384)
+        self.gaussian = SepConvGRU(hidden_dim=hidden_dim,
+                                   input_dim=126 + 2 * cfg.dim +
+                                   2 * cfg.mixtures)
         self.gaussian_head = GaussianHead(hidden_dim,
                                           hidden_dim=hidden_dim,
                                           mixtures=cfg.mixtures)
         self.mask = nn.Sequential(nn.Conv2d(cfg.dim, 256, 3, padding=1),
-                                  nn.LeakyReLU(),
-                                  nn.Conv2d(256, 256, 1, padding=0),
-                                  nn.LeakyReLU(),
+                                  nn.ReLU(inplace=True),
                                   nn.Conv2d(256, 64 * 9, 1, padding=0))
 
     def forward(self, net, inp, corr, cov):
         features = self.encoder(cov, corr)
         inp = torch.cat([inp, features], dim=1)  #C:126+2*mixtures+dim
-
         net = self.gaussian(net, inp)  #(B,128,H,W)
         delta_covs = self.gaussian_head(net)
         up_mask = .25 * self.mask(net)
         return net, delta_covs, up_mask
-
-
-class Refiner(torch.nn.Module):
-
-    def __init__(self):
-        super().__init__()
-
-        self.netMain = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channels=81 + 32 + 2 + 2 + 128 + 128 + 96 + 64 +
-                            32,
-                            out_channels=128,
-                            kernel_size=3,
-                            stride=1,
-                            padding=1,
-                            dilation=1),
-            torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=128,
-                            out_channels=128,
-                            kernel_size=3,
-                            stride=1,
-                            padding=2,
-                            dilation=2),
-            torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=128,
-                            out_channels=128,
-                            kernel_size=3,
-                            stride=1,
-                            padding=4,
-                            dilation=4),
-            torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=128,
-                            out_channels=96,
-                            kernel_size=3,
-                            stride=1,
-                            padding=8,
-                            dilation=8),
-            torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=96,
-                            out_channels=64,
-                            kernel_size=3,
-                            stride=1,
-                            padding=16,
-                            dilation=16),
-            torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=64,
-                            out_channels=32,
-                            kernel_size=3,
-                            stride=1,
-                            padding=1,
-                            dilation=1),
-            torch.nn.LeakyReLU(inplace=False, negative_slope=0.1),
-            torch.nn.Conv2d(in_channels=32,
-                            out_channels=2,
-                            kernel_size=3,
-                            stride=1,
-                            padding=1,
-                            dilation=1))
-
-    # end
-
-    def forward(self, tenInput):
-        return self.netMain(tenInput)
-
-    # end
-
-
-if __name__ == '__main__':
-    input = torch.randn(1, 565, 112, 256)
-    refiner = Refiner()
-    output = refiner(input)
-    print(output.shape)
