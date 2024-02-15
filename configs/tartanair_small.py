@@ -21,7 +21,7 @@ cfg.dim = 128
 cfg.dropout = 0.1
 
 cfg.num_heads = 4
-cfg.mixtures = 4
+cfg.mixtures = 2
 cfg.gru_iters = 12
 
 #training:
@@ -34,7 +34,7 @@ cfg.adamw_decay = 1e-5
 cfg.num_steps = 120000
 cfg.epsilon = 1e-8
 cfg.anneal_strategy = 'linear'
-cfg.batch_size = 3
+cfg.batch_size = 1
 cfg.num_workers = 0
 cfg.autosave_freq = 5000
 cfg.training_viz = True

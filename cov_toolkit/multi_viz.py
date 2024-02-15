@@ -15,7 +15,7 @@ import cv2
 from yacs.config import CfgNode as CN
 from core.utils import vars_viz
 from core.utils import flow_viz
-from core.network import Network
+from core.network import RAFTCovWithPWCNet as Network
 from configs.eval import get_cfg
 from core.utils.preprocess import preprocess, reverse
 import matplotlib.pyplot as plt
@@ -38,9 +38,9 @@ def process_image(i, filelist, model, gt_flow, args):
     img2, _, _, _, _ = preprocess(img2)
     with torch.no_grad():
         flow, covs = model(img1, img2)
-    flow = reverse(flow, W, H, W_, H_).squeeze_(0)
+    flow = reverse(flow, W, H, W_, H_,is_flow=True).squeeze_(0)
     covs = [reverse(cov, W, H, W_, H_) for cov in covs]
-    cov = covs[0]
+    cov = covs[-1]
     if args.flow:
         img = flow_viz.flow_to_image(flow.permute(1, 2, 0).cpu().numpy())
         image = Image.fromarray(img)
@@ -57,7 +57,7 @@ def process_image(i, filelist, model, gt_flow, args):
         cov = torch.mean(cov, dim=1).cpu()
         cov.squeeze_(0)
         cov = cov.detach()
-        cov = 2 * torch.exp(cov)
+        cov =  torch.exp(2*cov)
         cov = torch.sqrt(cov)
         img = vars_viz.heatmap(cov)
         cv2.imwrite(result_path + 'cov/' + str(i).zfill(6) + '.png', img)
@@ -87,11 +87,11 @@ def process_image(i, filelist, model, gt_flow, args):
 if __name__ == '__main__':
     img_path = 'datasets/eval_data/img/'
     flow_path = 'datasets/eval_data/flow/'
-    i = list(range(5001, 60002, 5000))
+    i = list(range(5001, 120002, 5000))
     model_path = []
     for j in i:
-        model_path.append('models/' + str(j) + '_flowformer.pth')
-
+        model_path.append('models/02_12_09_27/' + str(j) + '_RAFTCov.pth')
+    # model_path.append('models/TartanAir.pth')
     imglist = glob.glob(img_path + '*.png')
     imglist.sort()
     flowlist = glob.glob(flow_path + '*.npy')
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     cfg.update(vars(args))
     for modelname in model_path:
-        result_path = 'results/' + modelname.split('/')[1].split('_')[0] + '/'
+        result_path = 'results/new/' + modelname.split('/')[2].split('_')[0] + '/'
         os.makedirs(result_path, exist_ok=True)
         os.makedirs(result_path + 'flow/', exist_ok=True)
         os.makedirs(result_path + 'cov/', exist_ok=True)

@@ -38,7 +38,7 @@ cfg.batch_size = 8
 cfg.num_workers = 0
 cfg.autosave_freq = 5000
 cfg.training_viz = False
-cfg.clip = 1.2
+cfg.clip = 1.0
 cfg.loss_method = 'mean'
 
 #loss
