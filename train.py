@@ -24,7 +24,7 @@ from core.optimizer import fetch_optimizer
 from core.utils.misc import process_cfg
 from loguru import logger as loguru_logger
 from core.network import MonoCovWithFasterViT as Network
-from configs.tartanair_small import get_cfg
+from configs.tartanair import get_cfg
 from core.utils.preprocess import preprocess, reverse
 # from torch.utils.tensorboard import SummaryWriter
 from core.utils.logger import Logger
