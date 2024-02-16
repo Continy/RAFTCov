@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .attention import AttentionLayer
-from .encoder import *
 
 
 def coords_grid(batch, ht, wd):
@@ -32,13 +31,9 @@ class GaussianGRU(nn.Module):
             nn.Conv2d(128, cfg.dim * 2, 3, padding=1),
             nn.ReLU(inplace=True),
         )
-        self.mem_proj = nn.Conv2d(565, 128, 1, padding=0)
-        self.context_proj = nn.Conv2d(128, 256, 1, padding=0)
-        self.costmap_proj = nn.Conv2d(597, 256, 1, padding=0)
+        self.mem_proj = nn.Conv2d(597, 64, 1, padding=0)
         self.att = AttentionLayer(cfg)
         self.gaussian = GaussianUpdateBlock(cfg, hidden_dim=cfg.dim)
-        self.MemoryEncoder, self.ContextEncoder, self.CostMapEncoder = MemoryEncoder(
-        ), ContextEncoder(), CostMapEncoder()
 
     def upsample_flow(self, flow, mask):
         """ Upsample flow field [H/8, W/8, 2] -> [H, W, 2] using convex combination """
@@ -54,20 +49,14 @@ class GaussianGRU(nn.Module):
         up_flow = up_flow.permute(0, 1, 4, 2, 5, 3)
         return up_flow.reshape(N, C, 8 * H, 8 * W)
 
-    def forward(self, mem):
-        memory = self.mem_proj(mem[0])
-        context = self.context_proj(mem[1])
-        cost_map = self.costmap_proj(mem[2])
-        memory, context, cost_map = self.MemoryEncoder(
-            memory), self.ContextEncoder(context), self.CostMapEncoder(
-                cost_map)
+    def forward(self, context, memory, cost_map):
         cov_preds = []
-
+        memory = self.mem_proj(memory)
         memory = memory.permute(0, 2, 3, 1)
         covs0, covs1 = initialize_flow(context)
         covs0 = covs0.repeat(1, self.cfg.mixtures, 1, 1)
         covs1 = covs1.repeat(1, self.cfg.mixtures, 1, 1)
-
+        context = self.proj(context)
         net, inp = torch.split(context, [self.cfg.dim, self.cfg.dim], dim=1)
         net = torch.tanh(net)
         inp = torch.nn.LeakyReLU(inplace=False, negative_slope=0.1)(inp)
@@ -133,7 +122,7 @@ class GaussianEncoder(nn.Module):
     def __init__(self, cfg):
         super(GaussianEncoder, self).__init__()
 
-        self.convc1 = nn.Conv2d(4 * cfg.mixtures + 768, 256, 1, padding=0)
+        self.convc1 = nn.Conv2d(4 * cfg.mixtures + 6, 256, 1, padding=0)
         self.convc2 = nn.Conv2d(256, 192, 3, padding=1)
         self.convf1 = nn.Conv2d(2 * cfg.mixtures, 128, 7, padding=3)
         self.convf2 = nn.Conv2d(128, 64, 3, padding=1)
@@ -169,6 +158,7 @@ class GaussianUpdateBlock(nn.Module):
     def forward(self, net, inp, corr, cov):
         features = self.encoder(cov, corr)
         inp = torch.cat([inp, features], dim=1)  #C:126+2*mixtures+dim
+
         net = self.gaussian(net, inp)  #(B,128,H,W)
         delta_covs = self.gaussian_head(net)
         up_mask = .25 * self.mask(net)

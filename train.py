@@ -23,7 +23,7 @@ from core.loss import sequence_loss
 from core.optimizer import fetch_optimizer
 from core.utils.misc import process_cfg
 from loguru import logger as loguru_logger
-from core.network import MonoCovWithFasterViT as Network
+from core.network import RAFTCovWithPWCNet as Network
 from configs.tartanair import get_cfg
 from core.utils.preprocess import preprocess, reverse
 # from torch.utils.tensorboard import SummaryWriter
@@ -96,15 +96,15 @@ def train(cfg):
 
     model.cuda()
     model.train()
-    # if cfg.training_mode == 'flow':
-    #     #freeze the Covariance Decoder
-    #     for param in model.module.netGaussian.parameters():
-    #         param.requires_grad = False
-    #     optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
-    # if cfg.training_mode == 'cov':
-    #     #freeze the FlowFormer
-    #     for param in model.module.feature.pwc.parameters():
-    #         param.requires_grad = False
+    if cfg.training_mode == 'flow':
+        #freeze the Covariance Decoder
+        for param in model.module.netGaussian.parameters():
+            param.requires_grad = False
+        optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
+    if cfg.training_mode == 'cov':
+        #freeze the FlowFormer
+        for param in model.module.feature.pwc.parameters():
+            param.requires_grad = False
 
     optimizer, scheduler = fetch_optimizer(model, cfg)
     train_loader = datasets.fetch_dataloader(cfg)
@@ -139,7 +139,7 @@ def train(cfg):
             #with torch.autocast('cuda'):
             flow, covs = model(image1, image2)
             flow = reverse(flow, W, H, W_, H_, is_flow=True)
-            covs = [reverse(cov, W, H, W_, H_,is_flow=True) for cov in covs]
+            covs = [reverse(cov, W, H, W_, H_) for cov in covs]
 
             loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)
             scaler.scale(loss).backward()

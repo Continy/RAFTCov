@@ -14,11 +14,11 @@ class RAFTCovWithPWCNet(torch.nn.Module):
         self.netGaussian = GaussianGRU(cfg)
         if cfg.tartanvo_model is not None:
             self.feature.load_tartanvo_weight(cfg.tartanvo_model)
-            self.feature.init_cnet()
+            #self.feature.init_cnet()
 
     def forward(self, tenOne, tenTwo):
-        flow, fmap1, fmap2, cnet = self.feature(tenOne, tenTwo)
-        cov_preds = self.netGaussian(fmap1, fmap2, cnet)
+        flow, context, memory, costmap = self.feature(tenOne, tenTwo)
+        cov_preds = self.netGaussian(context, memory, costmap)
         return flow, cov_preds
 
 

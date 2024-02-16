@@ -66,8 +66,8 @@ class PWCFeature(nn.Module):
 
     def forward(self, img1, img2):
 
-        flow, mem = self.pwc([img1, img2])
-        return flow, mem
+        flow, context, memory, costmap = self.pwc([img1, img2])
+        return flow, context, memory, costmap
 
 
 class PWCDCNet(nn.Module):
@@ -82,7 +82,9 @@ class PWCDCNet(nn.Module):
 
         """
         super(PWCDCNet, self).__init__()
-
+        self.costMap = None
+        self.memory = None
+        self.context = None
         self.flow_norm = flow_norm
         # basic encoder
         self.conv1a = conv(3, 16, kernel_size=3, stride=2)
@@ -329,8 +331,9 @@ class PWCDCNet(nn.Module):
         up_flow3 = self.deconv3(flow3)
         up_feat3 = self.upfeat3(x)
 
-        context = torch.cat([c13, c23], dim=1)
-        mem2 = x
+        self.costMap = flow3
+        self.memory = x
+        self.context = torch.cat([c13, c23], dim=1)
 
         warp2 = self.warp(c22, up_flow3 * 5.0)
         # corr2 = self.corr(c12, warp2)
@@ -347,4 +350,4 @@ class PWCDCNet(nn.Module):
         x = self.dc_conv4(self.dc_conv3(self.dc_conv2(self.dc_conv1(x))))
         flow2 = flow2 + self.dc_conv7(self.dc_conv6(self.dc_conv5(x)))
         flow2 = flow2 * self.flow_norm
-        return flow2, [mem3, context, mem2]  #memory,context,costmap
+        return flow2, self.context, self.memory, self.costMap

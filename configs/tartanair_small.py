@@ -17,7 +17,7 @@ cfg.seed = 2568
 cfg.log = False
 cfg.sum_freq = 100
 #gaussian:
-cfg.dim = 128
+cfg.dim = 64
 cfg.dropout = 0.1
 
 cfg.num_heads = 4
