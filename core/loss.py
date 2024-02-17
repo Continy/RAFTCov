@@ -16,7 +16,7 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds):
     mag = torch.sum(flow_gt**2, dim=1).sqrt()
     valid = (valid >= 0.5) & (mag < max_cov)
 
-    mse_loss = (flow_pred - flow_gt).abs()
+    mse_loss = (flow_pred - flow_gt)**2
     mse_loss = (valid[:, None] * mse_loss)
     #mse_loss = torch.mean(mse_loss, dim=1)
     cov_preds = [

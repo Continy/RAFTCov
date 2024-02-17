@@ -331,7 +331,7 @@ class PWCDCNet(nn.Module):
         up_flow3 = self.deconv3(flow3)
         up_feat3 = self.upfeat3(x)
 
-        self.costMap = flow3
+        self.costMap = up_feat3
         self.memory = x
         self.context = torch.cat([c13, c23], dim=1)
 
