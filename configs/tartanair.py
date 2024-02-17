@@ -34,7 +34,7 @@ cfg.adamw_decay = 1e-5
 cfg.num_steps = 240000
 cfg.epsilon = 1e-8
 cfg.anneal_strategy = 'linear'
-cfg.batch_size = 4
+cfg.batch_size = 8
 cfg.num_workers = 0
 cfg.autosave_freq = 5000
 cfg.training_viz = False
@@ -43,7 +43,7 @@ cfg.loss_method = 'mean'
 
 #loss
 cfg.gamma = 0.85
-cfg.max_cov = 200
+cfg.max_cov = 50
 
 
 def get_cfg():

@@ -37,7 +37,6 @@ def sequence_loss(flow_pred, flow_gt, valid, cfg, cov_preds):
         cv2.imwrite('cov.png', heatmap(viz))
 
     metrics = {
-        'flow': cov_loss.float().mean().item(),
         'sqrt_cov': cov.sqrt().float().mean().item(),
         'cov_loss': cov_loss.float().mean().item(),
         'mse_loss': mse_loss.float().mean().item()
