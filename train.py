@@ -93,7 +93,17 @@ def train(cfg):
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
         model.load_state_dict(torch.load(cfg.restore_ckpt), strict=False)
-
+    model.load_state_dict(torch.load('models/210001_RAFTCov.pth'),
+                          strict=False)
+    vonet_dict = torch.load('models/43_6_2_vonet_30000.pkl')
+    new_state_dict = {}
+    for key in vonet_dict.keys():
+        if key.startswith('module.flowNet'):
+            new_key = key.replace('module.flowNet', 'module.feature.pwc')
+            new_state_dict[new_key] = vonet_dict[key]
+        else:
+            new_state_dict[key] = vonet_dict[key]
+    model.load_state_dict(new_state_dict, strict=False)
     model.cuda()
     model.train()
     if cfg.training_mode == 'flow':

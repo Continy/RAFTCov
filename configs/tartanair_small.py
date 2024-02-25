@@ -8,9 +8,10 @@ cfg.image_size = [480, 640]
 cfg.root = 'D:\\gits\\FlowFormer\\datasets\\abandonedfactory\\Easy\\P001\\'
 cfg.save_path = 'results/P001/'
 cfg.savename = 'TartanAir'
+cfg.stereo = False
 #cfg.restore_ckpt = 'models/60001_flowformer.pth'
 cfg.restore_ckpt = None
-cfg.tartanvo_model = 'models/tartanvo_1914.pkl'
+cfg.tartanvo_model = None
 cfg.folderlength = None
 cfg.training_mode = 'cov'
 cfg.seed = 2568
@@ -21,7 +22,7 @@ cfg.dim = 64
 cfg.dropout = 0.1
 
 cfg.num_heads = 4
-cfg.mixtures = 2
+cfg.mixtures = 4
 cfg.gru_iters = 12
 
 #training:
