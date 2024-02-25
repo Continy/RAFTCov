@@ -2,7 +2,6 @@ __pycache__
 *.pyc
 *.flo
 models
-*.yaml
 cov.png
 datasets
 results

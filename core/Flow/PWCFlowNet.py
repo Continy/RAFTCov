@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from correlation import FunctionCorrelation
+from .correlation import FunctionCorrelation
 from collections import OrderedDict
 
 

@@ -23,9 +23,9 @@ from core.loss import sequence_loss
 from core.optimizer import fetch_optimizer
 from core.utils.misc import process_cfg
 from loguru import logger as loguru_logger
-from core.network import RAFTCovWithPWCNet as Network
-from configs.tartanair import get_cfg
-from core.utils.preprocess import preprocess, reverse
+from core.Flow.network import RAFTCovWithPWCNet as FlowNetwork
+from core.Stereo.network import RAFTCovWithStereoNet7 as StereoNetwork
+from core.utils.preprocess import *
 # from torch.utils.tensorboard import SummaryWriter
 from core.utils.logger import Logger
 
@@ -85,7 +85,7 @@ def count_parameters(model):
 
 
 def train(cfg):
-    model = nn.DataParallel(Network(cfg))
+    model = nn.DataParallel(FlowNetwork(cfg))
 
     loguru_logger.info("Parameter Count: %d" %
                        count_parameters(model.module.netGaussian))
@@ -189,7 +189,7 @@ def train(cfg):
 
 
 def train_stereo(cfg):
-    model = nn.DataParallel(Network(cfg))
+    model = nn.DataParallel(StereoNetwork(cfg))
 
     loguru_logger.info("Parameter Count: %d" %
                        count_parameters(model.module.netGaussian))
@@ -304,11 +304,12 @@ if __name__ == '__main__':
     parser.add_argument('--wandb',
                         action='store_true',
                         help='enable wandb logging')
-
+    parser.add_argument('--config',
+                        default='configs/yaml/tartanair_small.yaml')
     args = parser.parse_args()
-
-    cfg = get_cfg()
+    cfg = build_cfg(args.config)
     cfg.update(vars(args))
+
     if args.log or args.wandb:
         process_cfg(cfg)
         loguru_logger.add(str(Path(cfg.log_dir) / 'log.txt'), encoding="utf8")

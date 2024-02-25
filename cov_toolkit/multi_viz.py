@@ -15,7 +15,7 @@ import cv2
 from yacs.config import CfgNode as CN
 from core.utils import vars_viz
 from core.utils import flow_viz
-from core.network import RAFTCovWithPWCNet as Network
+from core.Flow.network import RAFTCovWithPWCNet as Network
 from configs.tartanair import get_cfg
 from core.utils.preprocess import preprocess, reverse
 import matplotlib.pyplot as plt

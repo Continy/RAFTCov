@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .fastervit.faster_vit_any_res import FasterViTLayer
+from ...fastervit.faster_vit_any_res import FasterViTLayer
 
 
 class MemoryEncoder(nn.Module):

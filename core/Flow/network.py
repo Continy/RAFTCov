@@ -2,10 +2,10 @@ import sys
 import torch
 import torch.nn as nn
 from .gru import GaussianGRU
-from PWCFlowNet import PWCDCNet, PWCFeature
+from .PWCFlowNet import PWCDCNet, PWCFeature
 
 
-class RAFTCovWithPWCNet(torch.nn.Module):
+class RAFTCovWithPWCNet(nn.Module):
 
     def __init__(self, cfg):
         super(RAFTCovWithPWCNet, self).__init__()
