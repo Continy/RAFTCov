@@ -26,6 +26,7 @@ from loguru import logger as loguru_logger
 from core.Flow.network import RAFTCovWithPWCNet as FlowNetwork
 from core.Stereo.network import RAFTCovWithStereoNet7 as StereoNetwork
 from core.utils.preprocess import *
+import core.utils.Utility as Utility
 # from torch.utils.tensorboard import SummaryWriter
 from core.utils.logger import Logger
 
@@ -197,13 +198,12 @@ def train_stereo(cfg):
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
         model.load_state_dict(torch.load(cfg.restore_ckpt), strict=False)
-    model.load_state_dict(torch.load('models/02_17_01_05/210001_RAFTCov.pth'),
-                          strict=False)
+
     vonet_dict = torch.load('models/43_6_2_vonet_30000.pkl')
     new_state_dict = {}
     for key in vonet_dict.keys():
-        if key.startswith('module.flowNet'):
-            new_key = key.replace('module.flowNet', 'module.feature.pwc')
+        if key.startswith('module.stereoNet'):
+            new_key = key.replace('module.stereoNet', 'module.feature.stereo')
             new_state_dict[new_key] = vonet_dict[key]
         else:
             new_state_dict[key] = vonet_dict[key]
@@ -211,14 +211,14 @@ def train_stereo(cfg):
 
     model.cuda()
     model.train()
-    if cfg.training_mode == 'flow':
+    if cfg.training_mode == 'stereo':
         #freeze the Covariance Decoder
         for param in model.module.netGaussian.parameters():
             param.requires_grad = False
         optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
     if cfg.training_mode == 'cov':
         #freeze the FlowFormer
-        for param in model.module.feature.pwc.parameters():
+        for param in model.module.feature.stereo.parameters():
             param.requires_grad = False
 
     optimizer, scheduler = fetch_optimizer(model, cfg)
@@ -237,8 +237,8 @@ def train_stereo(cfg):
         for i_batch, data_blob in enumerate(train_loader):
 
             optimizer.zero_grad()
-            image1, image2, gt_flow, valid = [x.cuda() for x in data_blob]
-
+            image1, image2, gt_stereo, valid = [x for x in data_blob]
+            valid = valid.cuda()
             if cfg.add_noise:
                 stdv = np.random.uniform(0.0, 5.0)
                 image1 = (image1 +
@@ -249,14 +249,20 @@ def train_stereo(cfg):
                               0.0, 255.0)
 
             output = {}
-            image1, W, H, W_, H_ = preprocess(image1)
-            image2, _, _, _, _ = preprocess(image2)
-            #with torch.autocast('cuda'):
-            flow, covs = model(image1, image2)
-            flow = reverse(flow, W, H, W_, H_, is_flow=True)
-            covs = [reverse(cov, W, H, W_, H_) for cov in covs]
 
-            loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)
+            flow, covs = model(image1, image2)
+            _, cropsize = Utility.getCropMargin(gt_stereo.shape)
+            gt_stereo = Utility.frame2Sample(gt_stereo, None)
+            transform = Utility.Compose([
+                Utility.CropCenter(cropsize,
+                                   fix_ratio=False,
+                                   scale_w=1.0,
+                                   scale_disp=False),
+                Utility.ToTensor()
+            ])
+            gt_stereo = transform(gt_stereo)['img0'].cuda()
+
+            loss, metrics = sequence_loss(flow, gt_stereo, valid, cfg, covs)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip)
