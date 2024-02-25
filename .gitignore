@@ -7,3 +7,7 @@ cov.png
 datasets
 results
 .vscode
+logs
+wandb
+*.err
+*.out
