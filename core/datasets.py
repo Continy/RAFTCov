@@ -31,6 +31,7 @@ class FlowDataset(data.Dataset):
         self.is_test = False
         self.init_seed = False
         self.flow_list = []
+        self.depth_list = []
         self.image_list = []
         self.extra_info = []
 
@@ -110,69 +111,130 @@ class TartanAir(FlowDataset):
             self,
             aug_params=None,
             root='D:\\gits\\FlowFormer-Official\\datasets\\abandonedfactory\\Easy\\',
-            folderlength=2):
+            folderlength=2,
+            stereo=False):
         super(TartanAir, self).__init__(aug_params, npy=True)
-        if folderlength == None:
-            flow_length = len(glob(os.path.join(root, 'flow', '*_flow.npy')))
-            print('find {} flow files in {}'.format(flow_length, root))
-            flows = sorted(glob(os.path.join(root, 'flow', '*.npy')))
-            images = sorted(glob(os.path.join(root, 'image_left', '*.png')))
-            for i in range(flow_length - 1):
-                self.flow_list += [flows[i]]
-                self.image_list += [[images[i], images[i + 1]]]
-        else:
+        if stereo:
+            if folderlength == None:
+                depth_length = len(
+                    glob(os.path.join(root, 'depth_left', '*_depth.npy')))
+                print('find {} flow files in {}'.format(depth_length, root))
+                depth = sorted(glob(os.path.join(root, 'depth_left', '*.npy')))
+                imageL = sorted(glob(os.path.join(root, 'image_left',
+                                                  '*.png')))
+                imageR = sorted(
+                    glob(os.path.join(root, 'image_right', '*.png')))
+                for i in range(flow_length - 1):
+                    self.depth_list += [depth[i]]
+                    self.image_list += [[imageL[i], imageR[i]]]
+            else:
 
-            dirnames = [
-                'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
-                'hospital', 'soulcity', 'amusement', 'house', 'oldtown',
-                'westerndesert'
-            ]
-            root = '/zihao/datasets/'
-            for path in dirnames:
-                datalist = os.listdir(os.path.join(root, path, 'Data'))
-                pattern = re.compile(r'P00\d')
-                Plist = []
-                for i in datalist:
-                    if pattern.match(i):
-                        Plist.append(i)
-                for i in Plist:
-                    flow_length = len(
-                        glob(
-                            os.path.join(root, path, 'Data', i, 'flow',
-                                         '*_flow.npy')))
-                    print('find {} flow files in {}'.format(
-                        flow_length, os.path.join(root, path, 'Data', i,
-                                                  'flow')))
-                    flows = sorted(
-                        glob(
-                            os.path.join(root, path, 'Data', i, 'flow',
-                                         '*_flow.npy')))
-                    #print(flows)
-                    images = sorted(
-                        glob(
-                            os.path.join(root, path, 'Data', i, 'image_left',
-                                         '*.png')))
-                    for i in range(flow_length - 1):
-                        self.flow_list += [flows[i]]
-                        self.image_list += [[images[i], images[i + 1]]]
+                dirnames = [
+                    'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
+                    'hospital', 'soulcity', 'amusement', 'house', 'oldtown',
+                    'westerndesert'
+                ]
+                root = '/zihao/datasets/'
+                for path in dirnames:
+                    datalist = os.listdir(os.path.join(root, path, 'Data'))
+                    pattern = re.compile(r'P00\d')
+                    Plist = []
+                    for i in datalist:
+                        if pattern.match(i):
+                            Plist.append(i)
+                    for i in Plist:
+                        depth_length = len(
+                            glob(
+                                os.path.join(root, path, 'Data', i,
+                                             'depth_left', '_depth.npy')))
+                        print('find {} flow files in {}'.format(
+                            flow_length,
+                            os.path.join(root, path, 'Data', i, 'depth_left')))
+                        depth = sorted(
+                            glob(
+                                os.path.join(root, path, 'Data', i,
+                                             'depth_left', '*_depth.npy')))
+                        #print(flows)
+                        imageL = sorted(
+                            glob(
+                                os.path.join(root, path, 'Data', i,
+                                             'image_left', '*.png')))
+                        imageR = sorted(
+                            glob(
+                                os.path.join(root, path, 'Data', i,
+                                             'image_right', '*.png')))
+                        for i in range(flow_length - 1):
+                            self.depth_list += [depth[i]]
+                            self.image_list += [[imageL[i], imageR[i]]]
+        else:
+            if folderlength == None:
+                flow_length = len(
+                    glob(os.path.join(root, 'flow', '*_flow.npy')))
+                print('find {} flow files in {}'.format(flow_length, root))
+                flows = sorted(glob(os.path.join(root, 'flow', '*.npy')))
+                images = sorted(glob(os.path.join(root, 'image_left',
+                                                  '*.png')))
+                for i in range(flow_length - 1):
+                    self.flow_list += [flows[i]]
+                    self.image_list += [[images[i], images[i + 1]]]
+            else:
+
+                dirnames = [
+                    'abandonedfactory', 'hongkongalley', 'office', 'slaughter',
+                    'hospital', 'soulcity', 'amusement', 'house', 'oldtown',
+                    'westerndesert'
+                ]
+                root = '/zihao/datasets/'
+                for path in dirnames:
+                    datalist = os.listdir(os.path.join(root, path, 'Data'))
+                    pattern = re.compile(r'P00\d')
+                    Plist = []
+                    for i in datalist:
+                        if pattern.match(i):
+                            Plist.append(i)
+                    for i in Plist:
+                        flow_length = len(
+                            glob(
+                                os.path.join(root, path, 'Data', i, 'flow',
+                                             '*_flow.npy')))
+                        print('find {} flow files in {}'.format(
+                            flow_length,
+                            os.path.join(root, path, 'Data', i, 'flow')))
+                        flows = sorted(
+                            glob(
+                                os.path.join(root, path, 'Data', i, 'flow',
+                                             '*_flow.npy')))
+                        #print(flows)
+                        images = sorted(
+                            glob(
+                                os.path.join(root, path, 'Data', i,
+                                             'image_left', '*.png')))
+                        for i in range(flow_length - 1):
+                            self.flow_list += [flows[i]]
+                            self.image_list += [[images[i], images[i + 1]]]
 
 
 def fetch_dataloader(args):
     """ Create the data loader for the corresponding trainign set """
     if args.stage == 'tartanair':
-        aug_params = {
-            'crop_size': args.image_size,
-            'min_scale': -0.1,
-            'max_scale': 0.3,
-            'do_flip': False
-        }
+        if not args.stereo:
+            aug_params = {
+                'crop_size': args.image_size,
+                'min_scale': -0.1,
+                'max_scale': 0.3,
+                'do_flip': False
+            }
+        else:
+            aug_params = None
         if args.root != None:
             train_dataset = TartanAir(aug_params,
                                       folderlength=args.folderlength,
-                                      root=args.root)
+                                      root=args.root,
+                                      stereo=args.stereo)
         else:
             train_dataset = TartanAir(aug_params,
-                                      folderlength=args.folderlength)
+                                      folderlength=args.folderlength,
+                                      stereo=args.stereo)
     else:
 
         raise ValueError(

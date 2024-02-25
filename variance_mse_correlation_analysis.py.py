@@ -31,11 +31,12 @@ def sparsification_plot(var, mse):
 
 
 if __name__ == '__main__':
-    i = list(range(5001, 120002, 5000))
+    i = list(range(5001, 210002, 5000))
     cov_path = []
+    datapath = 'results/test/'
     for j in i:
-        cov_path.append('results/new/' + str(j) + '/cov/file/')
-    mse_path = 'results/new/5001/mse/file/'
+        cov_path.append(datapath + str(j) + '/cov/file/')
+    mse_path = datapath + '5001/mse/file/'
     mselist = sorted(glob.glob(mse_path + '*.npy'))
     mses = []
     for mse in mselist:
@@ -66,12 +67,12 @@ if __name__ == '__main__':
         plt.plot([np.mean(cc)] * len(cc), label='mean')
         plt.legend()
         plt.title('Spearman’s rank correlation of variance and mse')
-        plt.savefig('results/new/' + covdir.split('/')[2] + '/cov&mse_cc.png')
+        plt.savefig(datapath + covdir.split('/')[2] + '/cov&mse_cc.png')
         plt.close()
         aepe_cov = np.array(aepe_cov)
         aepe_mse = np.array(aepe_mse)
         #将所有nan替换为0
         aepe_cov = np.nan_to_num(aepe_cov)
         aepe_mse = np.nan_to_num(aepe_mse)
-        np.save('results/new/' + covdir.split('/')[2] + '/aepe_var.npy', aepe_cov)
-        np.save('results/new/' + covdir.split('/')[2] + '/aepe_mse.npy', aepe_mse)
+        np.save(datapath + covdir.split('/')[2] + '/aepe_var.npy', aepe_cov)
+        np.save(datapath + covdir.split('/')[2] + '/aepe_mse.npy', aepe_mse)
