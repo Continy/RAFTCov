@@ -151,7 +151,7 @@ class TartanAir(FlowDataset):
                                 os.path.join(root, path, 'Data', i,
                                              'depth_left', '_depth.npy')))
                         print('find {} flow files in {}'.format(
-                            flow_length,
+                            depth_length,
                             os.path.join(root, path, 'Data', i, 'depth_left')))
                         depth = sorted(
                             glob(
@@ -166,7 +166,7 @@ class TartanAir(FlowDataset):
                             glob(
                                 os.path.join(root, path, 'Data', i,
                                              'image_right', '*.png')))
-                        for i in range(flow_length - 1):
+                        for i in range(depth_length - 1):
                             self.flow_list += [depth[i]]
                             self.image_list += [[imageL[i], imageR[i]]]
         else:
