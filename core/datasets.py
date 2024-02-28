@@ -149,8 +149,8 @@ class TartanAir(FlowDataset):
                         depth_length = len(
                             glob(
                                 os.path.join(root, path, 'Data', i,
-                                             'depth_left', '_depth.npy')))
-                        print('find {} flow files in {}'.format(
+                                             'depth_left', '*_depth.npy')))
+                        print('find {} depth files in {}'.format(
                             depth_length,
                             os.path.join(root, path, 'Data', i, 'depth_left')))
                         depth = sorted(
