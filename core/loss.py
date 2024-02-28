@@ -65,13 +65,16 @@ def stereo_loss(stereo_pred,
     depth_est = ((stereo_pred / 320.0 / 0.25 / 0.02)) / 0.01
     depth_gt = 1 / depth_gt / 0.01
     mse_loss = (depth_est - depth_gt)**2
-
     mag = torch.sum(depth_est**2, dim=1).sqrt()
     valid = (mag < max_cov)
     if not without_mask:
         mse_loss = (valid[:, None] * mse_loss)
-    #mse_loss = torch.mean(mse_loss, dim=1)
-    cov_preds = [cov.mean(dim=1) for cov in cov_preds]
+
+    cov_preds = [
+        cov.view(cov.shape[0], 1, cov.shape[1], cov.shape[2], cov.shape[3])
+        for cov in cov_preds
+    ]
+    cov_preds = [cov.mean(dim=2) for cov in cov_preds]
     for i in range(n_predictions):
         i_weight = gamma**(n_predictions - i - 1)
         i_loss = (mse_loss /
