@@ -90,7 +90,7 @@ def stereo_loss(stereo_pred,
         'cov_loss': cov_loss.float().mean().item(),
         'mse_loss': mse_loss.float().mean().item()
     }
-    return cov_loss.mean(), {}
+    return cov_loss.mean(), metrics
 
 
 def sequence_loss(*args):
