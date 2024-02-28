@@ -1,7 +1,7 @@
 #paths:
 stage: 'tartanair'
 image_size: [480, 640]
-root: 'D:\\gits\\FlowFormer\\datasets\\abandonedfactory\\Easy\\P001\\'
+root: 'D:\\Data\\TartanAir\\seasidetown\\Data\\P000\\'
 save_path: 'results/P001/'
 savename: 'TartanAir'
 #restore_ckpt : 'models/60001_flowformer.pth'
@@ -18,7 +18,7 @@ dim: 64
 dropout: 0.1
 
 num_heads: 4
-mixtures: 4
+mixtures: 8
 gru_iters: 12
 
 #training:
@@ -31,7 +31,7 @@ adamw_decay: 1.0e-5
 num_steps: 240000
 epsilon: 1.0e-8
 anneal_strategy: 'linear'
-batch_size: 8
+batch_size: 1
 num_workers: 0
 autosave_freq: 5000
 training_viz: False

@@ -159,6 +159,9 @@ class StereoNet7(nn.Module):
         x = self.conv_c3(cat1)  # 1/8
         cat2 = F.max_pool2d(x, kernel_size=2)  # 1/8 - 192
         x = self.conv_c4(cat2)
+
+        self.context = torch.cat((x, cat2), dim=1)  # 448
+
         cat3 = F.max_pool2d(x, kernel_size=2)  # 1/16 - 256
         x = self.conv_c5(cat3)
         x = self.actfun(x, inplace=True)
@@ -174,26 +177,27 @@ class StereoNet7(nn.Module):
         x = torch.cat((x, cat4), dim=1)  # - 896
         x = self.deconv_c7(x)  # 1/16 - 320
         x = self.actfun(x, inplace=True)
-        x = torch.cat((x, cat3), dim=1)  # - 576
-        print(x.shape)
+        x = torch.cat((x, cat3), dim=1)  # - 576 28,40
         x = self.deconv_c8(x)  # 1/8 - 192
+
+        self.memory = x  # 192
+
         x = self.actfun(x, inplace=True)
         x = self.conv_c8(x)
-        x = torch.cat((x, cat2), dim=1)  # - 384
-        print(x.shape)
+
+        self.costMap = x  # 192
+
+        x = torch.cat((x, cat2), dim=1)  # - 384 56,80
         x = self.deconv_c9(x)  # 1/4 - 128
         x = self.actfun(x, inplace=True)
         x = self.conv_c9(x)
-        x = torch.cat((x, cat1), dim=1)  # - 256
-        print(x.shape)
+        x = torch.cat((x, cat1), dim=1)  # - 256 112,160
         x = self.deconv_c10(x)  # 1/2 - 64
         x = self.actfun(x, inplace=True)
         x = self.conv_c10(x)
-        x = torch.cat((x, cat0), dim=1)  # - 128
-        print(x.shape)
+        x = torch.cat((x, cat0), dim=1)  # - 128 224,320
         x = self.deconv_c11(x)  # 1/1 - 64
         x = self.actfun(x, inplace=True)
-        exit()
         x = self.conv_c12(x)
         x = self.actfun(x, inplace=True)
         out0 = self.conv_c13(x)

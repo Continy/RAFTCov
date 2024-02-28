@@ -87,14 +87,17 @@ class FlowDataset(data.Dataset):
 
         img1 = torch.from_numpy(img1).permute(2, 0, 1).float()
         img2 = torch.from_numpy(img2).permute(2, 0, 1).float()
-        flow = torch.from_numpy(flow).permute(2, 0, 1).float()
-
-        if valid is not None:
-            valid = torch.from_numpy(valid)
-        else:
-            valid = (flow[0].abs() < 1000) & (flow[1].abs() < 1000)
-
-        return img1, img2, flow, valid.float()
+        if len(flow.shape) == 3:  #flow
+            flow = torch.from_numpy(flow).permute(2, 0, 1).float()
+            if valid is not None:
+                valid = torch.from_numpy(valid).float()
+            else:
+                valid = (flow[0].abs() < 1000) & (flow[1].abs() < 1000)
+                valid = valid.float()
+            return img1, img2, flow, valid
+        elif len(flow.shape) == 2:  #depth
+            flow = torch.from_numpy(flow).unsqueeze(0).float()
+            return img1, img2, flow
 
     def __rmul__(self, v):
         self.flow_list = v * self.flow_list
@@ -124,7 +127,7 @@ class TartanAir(FlowDataset):
                                                   '*.png')))
                 imageR = sorted(
                     glob(os.path.join(root, 'image_right', '*.png')))
-                for i in range(flow_length - 1):
+                for i in range(depth_length - 1):
                     self.flow_list += [depth[i]]
                     self.image_list += [[imageL[i], imageR[i]]]
             else:

@@ -1,9 +1,10 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F# the custom cost volume layer
+import torch.nn.functional as F  # the custom cost volume layer
 from torch import einsum
 from einops import rearrange
+
 
 class PositionalEncoding2D(nn.Module):
 
@@ -50,13 +51,13 @@ class PositionalEncoding2D(nn.Module):
             tensor.shape[0], 1, 1, 1)
         return self.cached_penc
 
-    
-    def _get_emb(self,sin_inp):
+    def _get_emb(self, sin_inp):
         """
         Gets a base embedding for one dimension with sin and cos intertwined
         """
         emb = torch.stack((sin_inp.sin(), sin_inp.cos()), dim=-1)
         return torch.flatten(emb, -2, -1)
+
 
 class MultiHeadAttention(nn.Module):
 
@@ -131,7 +132,8 @@ class AttentionLayer(nn.Module):
 
         x = self.proj(torch.cat([x, shortcut], dim=1))
         x = x + self.ffn(self.norm2(x))
-        C = 4 * self.cfg.mixtures + 4
+        B_, HW_, C_ = x.shape
+        C = int(B_ * HW_ * C_ // (H * W) / B)
         x = x.reshape(B, H, W, C).permute(0, 3, 1, 2)
 
         return x, k, v

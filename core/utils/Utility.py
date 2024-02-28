@@ -211,6 +211,27 @@ class DownscaleFlow(object):
         return sample
 
 
+import torchvision.transforms.v2 as v2
+import torchvision
+
+torchvision.disable_beta_transforms_warning()
+
+
+class CustomDownscaleTransform:
+
+    def __init__(self, scale=4):
+        self.downscale_factor = 1.0 / scale
+
+    def __call__(self, sample):
+        transform = v2.Compose([
+            v2.Resize((int(sample.height * self.downscale_factor),
+                       int(sample.width * self.downscale_factor))),
+        ])
+
+        transformed_sample = transform(sample)
+        return transformed_sample
+
+
 class Normalize(object):
     """Given mean: (R, G, B) and std: (R, G, B),
     This option should be before the to tensor
@@ -228,10 +249,14 @@ class Normalize(object):
 
     def __call__(self, sample):
         keys = list(sample.keys())
+        print(keys)
         for kk in keys:
             if kk.startswith('img0') or kk.startswith(
                     'img1'):  # sample[kk] is a list, sample[kk][k]: h x w x 3
                 seqlen = len(sample[kk])
+                print(kk)
+                print(seqlen)
+                print(sample[kk][0].shape)
                 datalist = []
                 for s in range(seqlen):
                     sample[kk][s] = sample[kk][s] / 255.0

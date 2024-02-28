@@ -4,17 +4,21 @@ import torch.nn.functional as F
 from .attention import AttentionLayer
 
 
-def coords_grid(batch, ht, wd):
-    coords = torch.meshgrid(torch.arange(ht), torch.arange(wd))
-    coords = torch.stack(coords[::-1], dim=0).float()
-    return coords[None].repeat(batch, 1, 1, 1)
+def distance_grid(batch, ht, wd):
+    center_x, center_y = wd / 2, ht / 2
+    x_coords = torch.arange(wd).float() - center_x
+    y_coords = torch.arange(ht).float() - center_y
+    distance = torch.sqrt(x_coords[None, :]**2 + y_coords[:, None]**2)
+    distance = distance[None, None, ...].repeat(batch, 1, 1, 1)
+
+    return distance.to(torch.float32)
 
 
 def initialize_flow(img):
     """ Flow is represented as difference between two means flow = mean1 - mean0"""
     N, C, H, W = img.shape
-    mean = coords_grid(N, H, W).to(img.device)
-    mean_init = coords_grid(N, H, W).to(img.device)
+    mean = distance_grid(N, H, W).to(img.device)
+    mean_init = distance_grid(N, H, W).to(img.device)
 
     # optical flow computed as difference: flow = mean1 - mean0
     return mean, mean_init
@@ -28,10 +32,10 @@ class GaussianGRU(nn.Module):
         self.iters = cfg.gru_iters
         #downsample x2
         self.proj = nn.Sequential(
-            nn.Conv2d(128, cfg.dim * 2, 3, padding=1),
+            nn.Conv2d(448, cfg.dim * 2, 3, padding=1),
             nn.ReLU(inplace=True),
         )
-        self.mem_proj = nn.Conv2d(597, 64, 1, padding=0)
+        self.mem_proj = nn.Conv2d(192, 64, 1, padding=0)
         self.att = AttentionLayer(cfg)
         self.gaussian = GaussianUpdateBlock(cfg, hidden_dim=cfg.dim)
 
@@ -80,7 +84,7 @@ class GaussianHead(nn.Module):
     def __init__(self, input_dim=128, hidden_dim=256, mixtures=9):
         super(GaussianHead, self).__init__()
         self.conv1 = nn.Conv2d(input_dim, hidden_dim, 3, padding=1)
-        self.conv2 = nn.Conv2d(hidden_dim, 2 * mixtures, 3, padding=1)
+        self.conv2 = nn.Conv2d(hidden_dim, mixtures, 3, padding=1)
 
     def forward(self, x):
         return self.conv2(self.conv1(x))
@@ -122,9 +126,9 @@ class GaussianEncoder(nn.Module):
     def __init__(self, cfg):
         super(GaussianEncoder, self).__init__()
 
-        self.convc1 = nn.Conv2d(4 * cfg.mixtures + 6, 256, 1, padding=0)
+        self.convc1 = nn.Conv2d(2 * cfg.mixtures + 576, 256, 1, padding=0)
         self.convc2 = nn.Conv2d(256, 192, 3, padding=1)
-        self.convf1 = nn.Conv2d(2 * cfg.mixtures, 128, 7, padding=3)
+        self.convf1 = nn.Conv2d(cfg.mixtures, 128, 7, padding=3)
         self.convf2 = nn.Conv2d(128, 64, 3, padding=1)
         self.conv = nn.Conv2d(64 + 192, 128 - 2, 3, padding=1)
 
@@ -146,8 +150,7 @@ class GaussianUpdateBlock(nn.Module):
         self.cfg = cfg
         self.encoder = GaussianEncoder(cfg)
         self.gaussian = SepConvGRU(hidden_dim=hidden_dim,
-                                   input_dim=126 + 2 * cfg.dim +
-                                   2 * cfg.mixtures)
+                                   input_dim=126 + 2 * cfg.dim + cfg.mixtures)
         self.gaussian_head = GaussianHead(hidden_dim,
                                           hidden_dim=hidden_dim,
                                           mixtures=cfg.mixtures)

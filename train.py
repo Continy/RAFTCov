@@ -15,7 +15,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import torchvision
+from torchvision.transforms import v2 as v2
 
+torchvision.disable_beta_transforms_warning()
 from torch.utils.data import DataLoader
 from core import optimizer
 import core.datasets as datasets
@@ -217,7 +220,6 @@ def train_stereo(cfg):
             param.requires_grad = False
         optimizer, scheduler = fetch_optimizer(model, cfg.trainer)
     if cfg.training_mode == 'cov':
-        #freeze the FlowFormer
         for param in model.module.feature.stereo.parameters():
             param.requires_grad = False
 
@@ -237,32 +239,24 @@ def train_stereo(cfg):
         for i_batch, data_blob in enumerate(train_loader):
 
             optimizer.zero_grad()
-            image1, image2, gt_stereo, valid = [x for x in data_blob]
-            valid = valid.cuda()
+            image1, image2, gt_stereo = [x for x in data_blob]
             if cfg.add_noise:
                 stdv = np.random.uniform(0.0, 5.0)
-                image1 = (image1 +
-                          stdv * torch.randn(*image1.shape).cuda()).clamp(
-                              0.0, 255.0)
-                image2 = (image2 +
-                          stdv * torch.randn(*image2.shape).cuda()).clamp(
-                              0.0, 255.0)
+                image1 = (image1 + stdv * torch.randn(*image1.shape)).clamp(
+                    0.0, 255.0)
+                image2 = (image2 + stdv * torch.randn(*image2.shape)).clamp(
+                    0.0, 255.0)
 
             output = {}
+            image1 = image1 / 255.0
+            image2 = image2 / 255.0
 
             flow, covs = model(image1, image2)
             _, cropsize = Utility.getCropMargin(gt_stereo.shape)
-            gt_stereo = Utility.frame2Sample(gt_stereo, None)
-            transform = Utility.Compose([
-                Utility.CropCenter(cropsize,
-                                   fix_ratio=False,
-                                   scale_w=1.0,
-                                   scale_disp=False),
-                Utility.ToTensor()
-            ])
-            gt_stereo = transform(gt_stereo)['img0'].cuda()
+            transform = v2.Compose([v2.CenterCrop(cropsize), v2.ToTensor()])
+            gt_stereo = transform(gt_stereo).cuda()
 
-            loss, metrics = sequence_loss(flow, gt_stereo, valid, cfg, covs)
+            loss, metrics = sequence_loss(flow, gt_stereo, None, cfg, covs)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip)
@@ -310,8 +304,7 @@ if __name__ == '__main__':
     parser.add_argument('--wandb',
                         action='store_true',
                         help='enable wandb logging')
-    parser.add_argument('--config',
-                        default='configs/yaml/tartanair_small.yaml')
+    parser.add_argument('--config', default='configs/yaml/stereo_small.yaml')
     args = parser.parse_args()
     cfg = build_cfg(args.config)
     cfg.update(vars(args))

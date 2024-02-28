@@ -1,5 +1,7 @@
 import torch
 import cv2
+from PIL import Image
+from utils import flow_viz
 
 
 def flow_loss(flow_pred, flow_gt, valid, cfg, cov_preds, without_mask=False):
@@ -51,6 +53,7 @@ def stereo_loss(stereo_pred,
     # cov_preds : stereo covariance predictions
     # stereo_pred : disparity predictions
     # stereo_gt = (fx * baseline) / (depth_gt + 1e-8)
+    # 0.02:stereo normalization factor, 0.01:resize factor
 
     gamma = cfg.gamma
     max_cov = cfg.max_cov
@@ -59,13 +62,12 @@ def stereo_loss(stereo_pred,
     mse_loss = torch.zeros_like(depth_gt)
     cov_loss = torch.zeros_like(depth_gt)
 
-    assert stereo_pred.shape == depth_gt.shape
-
-    depth_est = (320.0 * 0.25) / (stereo_pred + 1e-8)
+    depth_est = ((stereo_pred / 320.0 / 0.25 / 0.02)) / 0.01
+    depth_gt = 1 / depth_gt / 0.01
     mse_loss = (depth_est - depth_gt)**2
 
     mag = torch.sum(depth_est**2, dim=1).sqrt()
-    valid = (valid >= 0.5) & (mag < max_cov)
+    valid = (mag < max_cov)
     if not without_mask:
         mse_loss = (valid[:, None] * mse_loss)
     #mse_loss = torch.mean(mse_loss, dim=1)
@@ -85,7 +87,7 @@ def stereo_loss(stereo_pred,
         'cov_loss': cov_loss.float().mean().item(),
         'mse_loss': mse_loss.float().mean().item()
     }
-    return cov_loss.mean(), metrics
+    return cov_loss.mean(), {}
 
 
 def sequence_loss(*args):
