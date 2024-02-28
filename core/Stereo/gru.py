@@ -36,6 +36,7 @@ class GaussianGRU(nn.Module):
             nn.ReLU(inplace=True),
         )
         self.mem_proj = nn.Conv2d(192, 64, 1, padding=0)
+        self.costmap_proj = nn.Conv2d(192, 4, 1, padding=0)
         self.att = AttentionLayer(cfg)
         self.gaussian = GaussianUpdateBlock(cfg, hidden_dim=cfg.dim)
 
@@ -54,6 +55,7 @@ class GaussianGRU(nn.Module):
         return up_flow.reshape(N, C, 8 * H, 8 * W)
 
     def forward(self, context, memory, cost_map):
+
         cov_preds = []
         memory = self.mem_proj(memory)
         memory = memory.permute(0, 2, 3, 1)
@@ -61,6 +63,7 @@ class GaussianGRU(nn.Module):
         covs0 = covs0.repeat(1, self.cfg.mixtures, 1, 1)
         covs1 = covs1.repeat(1, self.cfg.mixtures, 1, 1)
         context = self.proj(context)
+        cost_map = self.costmap_proj(cost_map)
         net, inp = torch.split(context, [self.cfg.dim, self.cfg.dim], dim=1)
         net = torch.tanh(net)
         inp = torch.nn.LeakyReLU(inplace=False, negative_slope=0.1)(inp)
@@ -126,7 +129,7 @@ class GaussianEncoder(nn.Module):
     def __init__(self, cfg):
         super(GaussianEncoder, self).__init__()
 
-        self.convc1 = nn.Conv2d(2 * cfg.mixtures + 576, 256, 1, padding=0)
+        self.convc1 = nn.Conv2d(2 * cfg.mixtures + 12, 256, 1, padding=0)
         self.convc2 = nn.Conv2d(256, 192, 3, padding=1)
         self.convf1 = nn.Conv2d(cfg.mixtures, 128, 7, padding=3)
         self.convf2 = nn.Conv2d(128, 64, 3, padding=1)
