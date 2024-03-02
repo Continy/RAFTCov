@@ -8,10 +8,10 @@
 #SBATCH -p a100-gpu-shared               # Partition you submit to
 #SBATCH --gres=gpu:1               # GPUs
 #SBATCH --mem=32G                   # Memory you need
-#SBATCH --job-name=gaussian      # Job name
+#SBATCH --job-name=StereoCov      # Job name
 #SBATCH -o job_%j.out
 #SBATCH -e job_%j.err
-#SBATCH --mail-type=ALL             # Type of notification BEGIN/FAIL/END/ALL
+#SBATCH --mail-type=END             # Type of notification BEGIN/FAIL/END/ALL
 #SBATCH --mail-user=satanama.ring@gmail.com
 # Executable
 EXE=/bin/bash

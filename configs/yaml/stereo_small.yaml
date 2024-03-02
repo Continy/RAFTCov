@@ -1,15 +1,16 @@
 #paths:
-stage: 'tartanair'
+stage: "tartanair"
 image_size: [480, 640]
-root: 'D:\\Data\\TartanAir\\seasidetown\\Data\\P000\\'
-save_path: 'results/P001/'
-savename: 'TartanAir'
+root: 'D:\\Data\\TartanAir\\'
+traj: ["seasidetown"]
+save_path: "results/P001/"
+savename: "TartanAir"
 #restore_ckpt : 'models/60001_flowformer.pth'
 stereo: True
 restore_ckpt: null
-tartanvo_model: 'models/43_6_2_vonet_30000.pkl'
+tartanvo_model: "models/43_6_2_vonet_30000.pkl"
 folderlength: null
-training_mode: 'cov'
+training_mode: "cov"
 seed: 2568
 log: False
 sum_freq: 100
@@ -23,24 +24,21 @@ gru_iters: 12
 
 #training:
 mixed_precision: True
-optimizer: 'adamw'
-scheduler: 'OneCycleLR'
+optimizer: "adamw"
+scheduler: "OneCycleLR"
 add_noise: True
 canonical_lr: 12.5e-5
 adamw_decay: 1.0e-5
 num_steps: 240000
 epsilon: 1.0e-8
-anneal_strategy: 'linear'
+anneal_strategy: "linear"
 batch_size: 1
 num_workers: 0
 autosave_freq: 5000
 training_viz: False
 clip: 1.0
-loss_method: 'mean'
+loss_method: "mean"
 
 #loss
 gamma: 0.85
 max_cov: 50
-
-
-

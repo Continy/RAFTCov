@@ -55,6 +55,56 @@ class Compose(object):
         return img
 
 
+class NewCropCenter(object):
+    """Crops the a sample of data (tuple) at center
+    if the image size is not large enough, it will be first resized with fixed ratio
+    """
+
+    def __init__(self, size):
+        if isinstance(size, numbers.Number):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+
+    def __call__(self, sample):
+        kks = list(sample.keys())
+        th, tw = self.size
+        h, w = sample[kks[0]].shape[0], sample[kks[0]].shape[1]
+        if w == tw and h == th:
+            return sample
+
+        # resize the image if the image size is smaller than the target size
+        scale_h, scale_w, scale = 1., 1., 1.
+        if th > h:
+            scale_h = float(th) / h
+        if tw > w:
+            scale_w = float(tw) / w
+        if scale_h > 1 or scale_w > 1:
+            scale = max(scale_h, scale_w)
+            w = int(round(w * scale))  # w after resize
+            h = int(round(h * scale))  # h after resize
+
+        x1 = int((w - tw) / 2)
+        y1 = int((h - th) / 2)
+
+        for kk in kks:
+            if sample[kk] is None:
+                continue
+            img = sample[kk]
+            if len(img.shape) == 3:
+                if scale > 1:
+                    img = cv2.resize(img, (w, h),
+                                     interpolation=cv2.INTER_LINEAR)
+                sample[kk] = img[y1:y1 + th, x1:x1 + tw, :]
+            elif len(img.shape) == 2:
+                if scale > 1:
+                    img = cv2.resize(img, (w, h),
+                                     interpolation=cv2.INTER_LINEAR)
+                sample[kk] = img[y1:y1 + th, x1:x1 + tw]
+
+        return sample
+
+
 class CropCenter(object):
     """Crops a sample of data (tuple) at center
     if the image size is not large enough, it will be first resized with fixed ratio
