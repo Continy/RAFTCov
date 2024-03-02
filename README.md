@@ -56,10 +56,10 @@ python variance_mse_correlation_analysis.py
   - [x] Training script
   - [x] Evaluation script
   - [x] Pretrained model
-- [ ] StereoNet support
+- [x] StereoNet support
   - [x] Training script
-  - [ ] Evaluation script
-  - [ ] Pretrained model
+  - [x] Evaluation script
+  - [x] Pretrained model
 
 ## Others
 
