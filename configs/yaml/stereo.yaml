@@ -9,7 +9,7 @@ savename: "TartanAir"
 stereo: True
 restore_ckpt: null
 tartanvo_model: "models/43_6_2_vonet_30000.pkl"
-folderlength: 1
+folderlength: null
 training_mode: "cov"
 seed: 2568
 log: False

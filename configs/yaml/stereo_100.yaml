@@ -2,14 +2,14 @@
 stage: "tartanair"
 image_size: [480, 640]
 root: "/zihao/datasets/"
-traj: ["abandonedfactory", "hongkongalley", "office", "slaughter", "hospital", "soulcity", "amusement", "house", "oldtown", "westerndesert"]
+traj: ["abandonedfactory"]
 save_path: "results/P001/"
 savename: "TartanAir"
-stereo: False
 #restore_ckpt : 'models/60001_flowformer.pth'
+stereo: True
 restore_ckpt: null
-tartanvo_model: null
-folderlength: null
+tartanvo_model: "models/43_6_2_vonet_30000.pkl"
+folderlength: 100
 training_mode: "cov"
 seed: 2568
 log: False
@@ -19,7 +19,7 @@ dim: 64
 dropout: 0.1
 
 num_heads: 4
-mixtures: 4
+mixtures: 8
 gru_iters: 12
 
 #training:
@@ -42,3 +42,5 @@ loss_method: "mean"
 #loss
 gamma: 0.85
 max_cov: 50
+
+dataloader: True

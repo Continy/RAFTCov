@@ -183,6 +183,19 @@ class TartanAir(FlowDataset):
                         self.image_list += [[images[i], images[i + 1]]]
 
 
+class FixedSizeDataset(data.Dataset):
+
+    def __init__(self, dataset, size):
+        self.dataset = dataset
+        self.size = size
+
+    def __getitem__(self, index):
+        return self.dataset[index]
+
+    def __len__(self):
+        return min(len(self.dataset), self.size)
+
+
 def fetch_dataloader(args):
     """ Create the data loader for the corresponding trainign set """
     if args.stage == 'tartanair':
@@ -207,12 +220,21 @@ def fetch_dataloader(args):
         raise ValueError(
             'This dataset is not supported, please check core/datasets.py and add the dataset'
         )
-    train_loader = data.DataLoader(train_dataset,
-                                   batch_size=args.batch_size,
-                                   pin_memory=True,
-                                   shuffle=True,
-                                   num_workers=0,
-                                   drop_last=True)
 
+    if args.folderlength is not None:
+        train_dataset = FixedSizeDataset(train_dataset, args.folderlength)
+        train_loader = data.DataLoader(train_dataset,
+                                       batch_size=args.batch_size,
+                                       pin_memory=True,
+                                       shuffle=False,
+                                       num_workers=0,
+                                       drop_last=True)
+    else:
+        train_loader = data.DataLoader(train_dataset,
+                                       batch_size=args.batch_size,
+                                       pin_memory=True,
+                                       shuffle=True,
+                                       num_workers=0,
+                                       drop_last=True)
     print('Training with %d image pairs' % len(train_dataset))
     return train_loader
