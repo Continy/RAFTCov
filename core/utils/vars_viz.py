@@ -20,26 +20,32 @@ def read_flo_file(file_path):
             return data2D
 
 
-def heatmap(data):
+def heatmap(data, path):
 
     #(1,H,W)-->(3,H,W)
     min, max = torch.min(data), torch.max(data)
     data = (data - min) / (max - min) * 255
     img = data.numpy().astype(np.uint8)
     img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
-    img = img[:, :, ::-1]
-    return img
+    cv2.imwrite(path, img)
 
 
-def colorbar(data):
+def turbo(data, path):
+
+    plt.imshow(data, cmap='turbo', aspect='auto')
+    plt.savefig(path)
+
+
+def colorbar(data, path):
     colors = [
-        '#ffffff', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'
+        '#ffffff', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027',
+        '#a50026'
     ]
     cmap = mcolors.ListedColormap(colors)
     data[data > 1] = 1
     data = data.numpy()
-    img = plt.imshow(data, cmap=cmap)
-    return img
+    plt.imshow(data, cmap=cmap)
+    plt.savefig(path)
 
 
 if __name__ == '__main__':
