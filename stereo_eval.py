@@ -57,8 +57,8 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo_npy, args,
         cov = cov.detach()
         cov = torch.exp(2 * cov)
         cov = torch.sqrt(cov)
-        img = vars_viz.heatmap(cov)
-        cv2.imwrite(result_path + 'cov/' + str(i).zfill(6) + '.png', img)
+        path = result_path + 'cov/' + str(i).zfill(6) + '.png'
+        visualizer(cov, path)
         np.save(result_path + 'cov/' + 'file/' + str(i).zfill(6) + '.npy',
                 cov.numpy())
         if not args.error and not args.mse:
@@ -88,7 +88,7 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo_npy, args,
         np.save(result_path + 'mse/file/' + str(i).zfill(6) + '.npy',
                 mse.numpy())
         path = result_path + 'mse/' + str(i).zfill(6) + '.png'
-        img = visualizer(mse, path)
+        visualizer(mse, path)
         return mse.mean().item()
 
     return 0
