@@ -1,23 +1,21 @@
 import glob
 import sys
 
-from attr import validate
-
 sys.path.append('core')
-import torch.nn.functional as F
+
 from PIL import Image
 import argparse
 import os
-import time
+
 import numpy as np
 import torch
 import cv2
 from yacs.config import CfgNode as CN
 from core.utils import vars_viz
-from core.utils import flow_viz
+
 from core.Stereo.network import RAFTCovWithStereoNet7 as Network
 from core.utils.preprocess import build_cfg
-from core.utils.preprocess import preprocess, reverse
+
 import matplotlib.pyplot as plt
 import torch.nn as nn
 from core.utils.dis_viz import visualize_disparity_map
@@ -86,33 +84,34 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo_npy, args):
 
 
 if __name__ == '__main__':
-    img_path = 'datasets/stereo/'
-    stereo_path = 'datasets/stereo/stereo/'
-    datapath = 'results/stereo/'
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='configs/yaml/stereo.yaml')
-    args = parser.parse_args()
-    cfg = build_cfg(args.config)
-    cfg.update(vars(args))
-    model_path = ['models/175001_StereoCov.pth']
-    # model_path.append('models/TartanAir.pth')
-    imgLlist = glob.glob(img_path + 'imgL/*.png')
-    imgLlist.sort()
-    imgRlist = glob.glob(img_path + 'imgR/*.png')
-    imgRlist.sort()
-    stereolist = glob.glob(stereo_path + '*.npy')
-    stereolist.sort()
-    length = len(stereolist)
-    parser = argparse.ArgumentParser()
     parser.add_argument('--stereo', action='store_true', default=True)
     parser.add_argument('--cov', action='store_true', default=True)
     parser.add_argument('--mse', action='store_true', default=True)
     parser.add_argument('--training_mode', default='cov')
     parser.add_argument('--error', default=False)
     args = parser.parse_args()
+    cfg = build_cfg(args.config)
     cfg.update(vars(args))
+
+    model_path = cfg.model_path
+    img_path = cfg.img_path
+    depth_path = cfg.depth_path
+
+    imgLlist = glob.glob(img_path + 'image_left/*.png')
+    imgLlist.sort()
+    imgRlist = glob.glob(img_path + 'image_right/*.png')
+    imgRlist.sort()
+    depthlist = glob.glob(depth_path + '*.npy')
+    depthlist.sort()
+
+    length = cfg.length
+
+    result_path = cfg.result_path
+
     for modelname in model_path:
-        result_path = datapath
+
         os.makedirs(result_path, exist_ok=True)
         os.makedirs(result_path + 'stereo/', exist_ok=True)
         os.makedirs(result_path + 'stereo/est/', exist_ok=True)
@@ -126,7 +125,7 @@ if __name__ == '__main__':
         model.eval()
         results = []
         for i in range(length):
-            result = process_image(i, imgLlist, imgRlist, model, stereolist[i],
+            result = process_image(i, imgLlist, imgRlist, model, depthlist[i],
                                    args)
             print('{}/{}'.format(i + 1, length))
             if args.error or args.mse:
