@@ -21,6 +21,6 @@ mixtures: 8
 gru_iters: 1
 #paths:
 
-img_path: "/zihao/datasets/Data/P000/"
-depth_path: "/zihao/datasets/Data/P000/depth_left/"
+img_path: "/zihao/datasets/abandonedfactory/Data/P000/"
+depth_path: "/zihao/datasets/abandonedfactory/Data/P000/depth_left/"
 result_path: "results/stereo_100/"
