@@ -67,6 +67,12 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo_npy, args):
         stereo = stereo.cpu().detach().numpy()
         gt_stereo = gt_stereo.squeeze(0)
         gt_stereo = gt_stereo.cpu().detach().numpy()
+        os.makedirs(result_path + 'stereo/est/file/', exist_ok=True)
+        os.makedirs(result_path + 'stereo/gt/file/', exist_ok=True)
+        np.save(result_path + 'stereo/est/file/' + str(i).zfill(6) + '.npy',
+                stereo)
+        np.save(result_path + 'stereo/gt/file/' + str(i).zfill(6) + '.npy',
+                gt_stereo)
         visualize_disparity_map(
             stereo,
             result_path + 'stereo/' + 'est/' + str(i).zfill(6) + '.png')
@@ -78,8 +84,12 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo_npy, args):
     if args.error or args.mse:
 
         mse = torch.sqrt(mse)
+        os.makedirs(result_path + 'mse/file/', exist_ok=True)
+        np.save(result_path + 'mse/file/' + str(i).zfill(6) + '.npy',
+                mse.numpy())
         img = vars_viz.heatmap(mse)
         cv2.imwrite(result_path + 'mse/' + str(i).zfill(6) + '.png', img)
+        return mse.mean().item()
     return 0
 
 
