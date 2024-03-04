@@ -121,9 +121,9 @@ if __name__ == '__main__':
     length = cfg.length
     result_path = cfg.result_path
 
-    imgLlist = glob.glob(img_path + 'image_left/*.png').sort()
-    imgRlist = glob.glob(img_path + 'image_right/*.png').sort()
-    depthlist = glob.glob(depth_path + '*.npy').sort()
+    imgLlist = sorted(glob.glob(img_path + 'image_left/*.png'))
+    imgRlist = sorted(glob.glob(img_path + 'image_right/*.png'))
+    depthlist = sorted(glob.glob(depth_path + '*.npy'))
 
     for modelname in model_path:
         folders = [
