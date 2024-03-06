@@ -31,7 +31,8 @@ def heatmap(data, path):
 
 
 def turbo(data, path):
-
+    mix, max = torch.min(data), torch.max(data)
+    data = (data - mix) / (max - mix)
     plt.imshow(data, cmap='turbo', aspect='auto')
     plt.savefig(path)
 

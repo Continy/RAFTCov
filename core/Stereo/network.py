@@ -1,7 +1,7 @@
 import sys
 import torch
 import torch.nn as nn
-from .gru import GaussianGRU
+from .gru import GaussianGRU, HourglassDecoder
 from .StereoNet import StereoNet7
 import torchvision
 
@@ -25,9 +25,9 @@ class StereoFeature(nn.Module):
             v2.ToTensor()
         ])
         tenOne, tenTwo = transform(tenOne).cuda(), transform(tenTwo).cuda()
-        stereo, context, memory, costmap = self.stereo(
+        stereo, context, memory, costmap, cats = self.stereo(
             torch.cat((tenOne, tenTwo), dim=1))
-        return stereo, context, memory, costmap
+        return stereo, context, memory, costmap, cats
 
 
 class RAFTCovWithStereoNet7(nn.Module):
@@ -36,9 +36,10 @@ class RAFTCovWithStereoNet7(nn.Module):
         super(RAFTCovWithStereoNet7, self).__init__()
 
         self.feature = StereoFeature()
-        self.netGaussian = GaussianGRU(cfg)
+        #self.netGaussian = GaussianGRU(cfg) # AttentionDecoder
+        self.decoder = HourglassDecoder()
 
     def forward(self, tenOne, tenTwo):
-        stereo, context, memory, costmap = self.feature(tenOne, tenTwo)
-        cov_preds = self.netGaussian(context, memory, costmap)
+        stereo, context, memory, costmap, cats = self.feature(tenOne, tenTwo)
+        cov_preds = self.decoder(context, cats)
         return stereo, cov_preds

@@ -93,9 +93,44 @@ def stereo_loss(stereo_pred,
     return cov_loss.mean(), metrics
 
 
+def simple_stereo_loss(stereo_pred,
+                       depth_gt,
+                       valid,
+                       cfg,
+                       cov_preds,
+                       without_mask=False):
+
+    mse_loss = torch.zeros_like(depth_gt)
+    cov_loss = torch.zeros_like(depth_gt)
+
+    depth_est = ((stereo_pred / 320.0 / 0.25 / 0.02)) / 0.01
+    depth_gt = 1 / depth_gt / 0.01
+    mse_loss = (depth_est - depth_gt)**2
+
+    mag = torch.sum(depth_est**2, dim=1).sqrt()
+    valid = (mag < cfg.max_cov)
+    if not without_mask:
+        mse_loss = (valid[:, None] * mse_loss)
+    cov_loss = mse_loss / (2 * torch.exp(2 * cov_preds)) + cov_preds
+
+    cov = torch.exp(2 * cov_preds)
+
+    metrics = {
+        'sqrt_cov': cov.sqrt().float().mean().item(),
+        'cov_loss': cov_loss.float().mean().item(),
+        'mse_loss': mse_loss.float().mean().item()
+    }
+    return cov_loss.mean(), metrics
+
+
 def sequence_loss(*args):
     cfg = args[3]
     if cfg.stereo:
-        return stereo_loss(*args)
+        if cfg.decoder == 'hourglass':
+            return simple_stereo_loss(*args)
+        elif cfg.decoder == 'attention':
+            return stereo_loss(*args)
+        else:
+            raise NotImplementedError
     else:
         return flow_loss(*args)

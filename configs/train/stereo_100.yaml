@@ -5,10 +5,11 @@ root: "/zihao/datasets/"
 traj: ["abandonedfactory"]
 save_path: "results/P001/"
 savename: "TartanAir"
-#restore_ckpt : 'models/60001_flowformer.pth'
+
 stereo: True
 restore_ckpt: null
-tartanvo_model: "models/43_6_2_vonet_30000.pkl"
+decoder: "hourglass"
+
 folderlength: 100
 training_mode: "cov"
 seed: 2568

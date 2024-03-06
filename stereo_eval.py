@@ -23,8 +23,7 @@ import torchvision.transforms.v2 as v2
 import core.utils.Utility as Utility
 
 
-def process_image(i, imgLlist, imgRlist, model, gt_stereo_npy, args,
-                  visualizer):
+def process_image(i, imgLlist, imgRlist, model, gt_stereo, args, visualizer):
 
     img1 = np.array(Image.open(imgLlist[i])).astype(np.uint8)
     img2 = np.array(Image.open(imgRlist[i])).astype(np.uint8)
@@ -36,7 +35,6 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo_npy, args,
     img1 = img1.unsqueeze(0)
     img2 = img2.unsqueeze(0)
 
-    gt_stereo = np.load(gt_stereo_npy)
     _, cropsize = Utility.getCropMargin(gt_stereo.shape)
     gt_stereo = torch.from_numpy(gt_stereo).unsqueeze(0).float()
     transform = v2.Compose([v2.CenterCrop(cropsize), v2.ToTensor()])
@@ -96,13 +94,14 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo_npy, args,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='configs/eval/stereo_100.yaml')
+    parser.add_argument('--config', default='configs/eval/stereo copy.yaml')
     parser.add_argument('--stereo', action='store_true', default=True)
     parser.add_argument('--cov', action='store_true', default=True)
     parser.add_argument('--mse', action='store_true', default=True)
     parser.add_argument('--training_mode', default='cov')
     parser.add_argument('--error', default=False)
     parser.add_argument('--visualizer', default='turbo')
+    parser.add_argument('--compressed', default=True)
 
     args = parser.parse_args()
     cfg = build_cfg(args.config)
@@ -123,7 +122,10 @@ if __name__ == '__main__':
 
     imgLlist = sorted(glob.glob(img_path + 'image_left/*.png'))
     imgRlist = sorted(glob.glob(img_path + 'image_right/*.png'))
-    depthlist = sorted(glob.glob(depth_path + '*.npy'))
+    if args.compressed:
+        depthlist = sorted(glob.glob(depth_path + '*png'))
+    else:
+        depthlist = sorted(glob.glob(depth_path + '*.npy'))
 
     for modelname in model_path:
         folders = [
@@ -141,7 +143,13 @@ if __name__ == '__main__':
         results = []
 
         for i in range(length):
-            result = process_image(i, imgLlist, imgRlist, model, depthlist[i],
+            if args.compressed:
+                gt_stereo = cv2.imread(depthlist[i], cv2.IMREAD_UNCHANGED)
+                gt_stereo = gt_stereo.view("<f4")
+                gt_stereo = np.squeeze(gt_stereo)
+            else:
+                gt_stereo = np.load(depthlist[i])
+            result = process_image(i, imgLlist, imgRlist, model, gt_stereo,
                                    args, visualizer)
             print('{}/{}'.format(i + 1, length))
             if args.error or args.mse:

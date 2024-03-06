@@ -1,0 +1,24 @@
+#paths:
+stage: "tartanair"
+image_size: [480, 640]
+root: "/zihao/datasets/"
+
+stereo: True
+model_path: ["models/175001_StereoCov.pth"]
+length: 1
+
+training_mode: "cov"
+seed: 2568
+sum_freq: 100
+#gaussian:
+dim: 64
+dropout: 0.
+
+num_heads: 4
+mixtures: 8
+gru_iters: 1
+#paths:
+
+img_path: "datasets/hard/"
+depth_path: "datasets/hard/stereo/"
+result_path: "results/hard/"

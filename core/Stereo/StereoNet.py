@@ -160,17 +160,22 @@ class StereoNet7(nn.Module):
         cat2 = F.max_pool2d(x, kernel_size=2)  # 1/8 - 192
         x = self.conv_c4(cat2)
 
-        self.context = torch.cat((x, cat2), dim=1)  # 448
+        #self.context = torch.cat((x, cat2), dim=1)  # 448
 
         cat3 = F.max_pool2d(x, kernel_size=2)  # 1/16 - 256
         x = self.conv_c5(cat3)
         x = self.actfun(x, inplace=True)
         cat4 = F.max_pool2d(x, kernel_size=2)  # 1/32 - 384
+
+        cats = [cat0, cat1, cat2, cat3, cat4]
+
         x = self.conv_c6(cat4)
         x = self.actfun(x, inplace=True)
         x = F.max_pool2d(x, kernel_size=2)  # 1/64 - 512
         x = self.conv_c6_2(x)
         x = self.actfun(x, inplace=True)
+
+        self.context = x  # 512
 
         x = self.deconv_c7_2(x)  # 1/32 - 512
         x = self.actfun(x, inplace=True)
@@ -202,7 +207,7 @@ class StereoNet7(nn.Module):
         x = self.actfun(x, inplace=True)
         out0 = self.conv_c13(x)
         # x = F.relu(x, inplace=True)
-        return out0, self.context, self.memory, self.costMap
+        return out0, self.context, self.memory, self.costMap, cats
 
     def calc_loss(self,
                   output,

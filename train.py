@@ -196,7 +196,7 @@ def train_stereo(cfg):
     model = nn.DataParallel(StereoNetwork(cfg))
 
     loguru_logger.info("Parameter Count: %d" %
-                       count_parameters(model.module.netGaussian))
+                       count_parameters(model.module.decoder))
 
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
@@ -207,6 +207,15 @@ def train_stereo(cfg):
     for key in vonet_dict.keys():
         if key.startswith('module.stereoNet'):
             new_key = key.replace('module.stereoNet', 'module.feature.stereo')
+            new_state_dict[new_key] = vonet_dict[key]
+        else:
+            new_state_dict[key] = vonet_dict[key]
+    model.load_state_dict(new_state_dict, strict=False)
+    new_state_dict = {}
+
+    for key in vonet_dict.keys():
+        if key.startswith('module.stereoNet'):
+            new_key = key.replace('module.stereoNet', 'module.decoder')
             new_state_dict[new_key] = vonet_dict[key]
         else:
             new_state_dict[key] = vonet_dict[key]
@@ -260,6 +269,7 @@ def train_stereo(cfg):
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip)
+
             scaler.step(optimizer)
             scheduler.step()
             scaler.update()
@@ -304,7 +314,7 @@ if __name__ == '__main__':
     parser.add_argument('--wandb',
                         action='store_true',
                         help='enable wandb logging')
-    parser.add_argument('--config', default='configs/yaml/stereo_small.yaml')
+    parser.add_argument('--config', default='configs/train/stereo_small.yaml')
     args = parser.parse_args()
     cfg = build_cfg(args.config)
     cfg.update(vars(args))
