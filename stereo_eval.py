@@ -45,12 +45,12 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo, args, visualizer):
         stereo, covs = model(img1, img2)
     stereo = ((stereo / 320.0 / 0.25 / 0.02)) / 0.01
     gt_stereo = 1 / gt_stereo / 0.01
-    cov = covs[-1]
+    #cov = covs[-1]
     mse = torch.pow((stereo - gt_stereo), 2).squeeze_(0).cpu()
     mse = torch.mean(mse, dim=0)
 
     if args.cov:
-        cov = torch.mean(cov, dim=1).cpu()
+        cov = torch.mean(covs, dim=1).cpu()
         cov.squeeze_(0)
         cov = cov.detach()
         cov = torch.exp(2 * cov)
@@ -94,14 +94,15 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo, args, visualizer):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='configs/eval/stereo copy.yaml')
+    parser.add_argument('--config',
+                        default='configs/eval/stereo_100 copy.yaml')
     parser.add_argument('--stereo', action='store_true', default=True)
     parser.add_argument('--cov', action='store_true', default=True)
     parser.add_argument('--mse', action='store_true', default=True)
     parser.add_argument('--training_mode', default='cov')
     parser.add_argument('--error', default=False)
     parser.add_argument('--visualizer', default='turbo')
-    parser.add_argument('--compressed', default=True)
+    parser.add_argument('--compressed', default=False)
 
     args = parser.parse_args()
     cfg = build_cfg(args.config)

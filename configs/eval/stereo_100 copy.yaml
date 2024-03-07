@@ -1,0 +1,26 @@
+#paths:
+stage: "tartanair"
+image_size: [480, 640]
+root: "/zihao/datasets/"
+traj: ["abandonedfactory"]
+savename: "TartanAir"
+
+stereo: True
+model_path: ["logs/RAFTCov/03_06_11_09/10001_RAFTCov.pth"]
+length: 10
+
+training_mode: "cov"
+seed: 2568
+sum_freq: 100
+#gaussian:
+dim: 64
+dropout: 0.
+
+num_heads: 4
+mixtures: 8
+gru_iters: 1
+#paths:
+
+img_path: "D:/Data/TartanAir/seasidetown/Data/P000/"
+depth_path: "D:/Data/TartanAir/seasidetown/Data/P000/depth_left/"
+result_path: "results/stereo_100_hourglass_10001/"

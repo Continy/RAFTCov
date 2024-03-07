@@ -272,6 +272,8 @@ def train_stereo(cfg):
 
             scaler.step(optimizer)
             scheduler.step()
+            lr = optimizer.param_groups[0]['lr']
+            metrics['lr'] = lr
             scaler.update()
             if cfg.log:
                 metrics.update(output)
