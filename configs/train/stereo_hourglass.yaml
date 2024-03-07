@@ -1,8 +1,9 @@
+project: "StereoCov/Hourglass"
 #paths:
 stage: "tartanair"
 image_size: [480, 640]
 root: "/zihao/datasets/"
-traj: ["abandonedfactory", "hongkongalley", "office", "slaughter", "hospital", "soulcity", "amusement", "house", "oldtown", "westerndesert"]
+traj: ["abandonedfactory", "hongkongalley", "office", "slaughter", "hospital", "amusement", "house", "oldtown", "westerndesert"]
 save_path: "results/P001/"
 savename: "TartanAir"
 #restore_ckpt : 'models/60001_flowformer.pth'
