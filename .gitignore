@@ -11,3 +11,4 @@ wandb
 *.err
 *.out
 *.out.swp
+*.err.swp
