@@ -3,7 +3,7 @@ import cv2
 from PIL import Image
 from utils import flow_viz
 
-EPSILON = 1e-7
+EPSILON = 1e-3
 
 
 def flow_loss(flow_pred, flow_gt, valid, cfg, cov_preds, without_mask=False):
