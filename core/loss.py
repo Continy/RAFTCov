@@ -100,7 +100,7 @@ def simple_stereo_loss(stereo_pred,
                        valid,
                        cfg,
                        cov_preds,
-                       without_mask=False):
+                       without_mask=True):
 
     mse_loss = torch.zeros_like(depth_gt)
     cov_loss = torch.zeros_like(depth_gt)
@@ -113,8 +113,8 @@ def simple_stereo_loss(stereo_pred,
     valid = (mag < cfg.max_cov)
     if not without_mask:
         mse_loss = (valid[:, None] * mse_loss)
-    cov_loss = mse_loss / cov_preds + torch.log(cov_preds + EPSILON)
-    print(cov_preds.min(), cov_preds.max())
+    cov_loss = (mse_loss / cov_preds + EPSILON) + torch.log(cov_preds +
+                                                            EPSILON)
     metrics = {
         'sqrt_cov': cov_preds.sqrt().float().mean().item(),
         'cov_loss': cov_loss.float().mean().item(),
