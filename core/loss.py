@@ -3,6 +3,8 @@ import cv2
 from PIL import Image
 from utils import flow_viz
 
+EPSILON = 1e-7
+
 
 def flow_loss(flow_pred, flow_gt, valid, cfg, cov_preds, without_mask=False):
 
@@ -111,12 +113,10 @@ def simple_stereo_loss(stereo_pred,
     valid = (mag < cfg.max_cov)
     if not without_mask:
         mse_loss = (valid[:, None] * mse_loss)
-    cov_loss = mse_loss / (2 * torch.exp(2 * cov_preds)) + cov_preds
-
-    cov = torch.exp(2 * cov_preds)
+    cov_loss = mse_loss / cov_preds + torch.log(cov_preds)
 
     metrics = {
-        'sqrt_cov': cov.sqrt().float().mean().item(),
+        'sqrt_cov': cov_preds.sqrt().float().mean().item(),
         'cov_loss': cov_loss.float().mean().item(),
         'mse_loss': mse_loss.float().mean().item()
     }

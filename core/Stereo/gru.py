@@ -226,24 +226,26 @@ class HourglassDecoder(nn.Module):
         cat0, cat1, cat2, cat3, cat4 = cats
 
         x = self.deconv_c7_2(x)  # 1/32 - 512
-        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
+        x = self.actfun(x)
         x = torch.cat((x, cat4), dim=1)  # - 896
         x = self.deconv_c7(x)  # 1/16 - 320
-        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
+        x = self.actfun(x)
         x = torch.cat((x, cat3), dim=1)  # - 576 28,40
         x = self.deconv_c8(x)  # 1/8 - 192
-        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
+        x = self.actfun(x)
         x = self.conv_c8(x)
         x = torch.cat((x, cat2), dim=1)  # - 384 56,80
         x = self.deconv_c9(x)  # 1/4 - 128
-        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
+        x = self.actfun(x)
         x = self.conv_c9(x)
         x = torch.cat((x, cat1), dim=1)  # - 256 112,160
         x = self.deconv_c10(x)  # 1/2 - 64
+        x = self.actfun(x)
         x = self.conv_c10(x)
         x = torch.cat((x, cat0), dim=1)  # - 128 224,320
         x = self.deconv_c11(x)  # 1/1 - 64
+        x = self.actfun(x)
         x = self.conv_c12(x)
-
+        x = self.actfun(x)
         out0 = self.conv_c13(x)
         return out0
