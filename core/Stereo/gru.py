@@ -176,7 +176,7 @@ from .PSM import Hourglass
 
 class HourglassDecoder(nn.Module):
 
-    def __init__(self, act_fun='selu'):
+    def __init__(self, act_fun='relu'):
         super(HourglassDecoder, self).__init__()
         if act_fun == 'relu':
             self.actfun = F.relu
@@ -248,4 +248,5 @@ class HourglassDecoder(nn.Module):
         x = self.conv_c12(x)
         x = self.actfun(x)
         out0 = self.conv_c13(x)
+        x = self.actfun(x)
         return out0
