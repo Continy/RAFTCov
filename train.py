@@ -240,7 +240,7 @@ def train_stereo(cfg):
     if cfg.log:
         logger = Logger(model, scheduler, cfg)
     if cfg.wandb and wandb:
-        wandb.init(project=cfg.project_name, name=cfg.name, config=cfg)
+        wandb.init(project=cfg.project, name=cfg.name, config=cfg)
         wandb.watch(model, log='all')
     should_keep_training = True
     while should_keep_training:
