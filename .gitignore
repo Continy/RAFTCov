@@ -10,3 +10,4 @@ logs
 wandb
 *.err
 *.out
+*.err.swp

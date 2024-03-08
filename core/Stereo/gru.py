@@ -176,12 +176,14 @@ from .PSM import Hourglass
 
 class HourglassDecoder(nn.Module):
 
-    def __init__(self, act_fun='relu'):
+    def __init__(self, act_fun='gelu'):
         super(HourglassDecoder, self).__init__()
         if act_fun == 'relu':
             self.actfun = F.relu
         elif act_fun == 'selu':
             self.actfun = F.selu
+        elif act_fun == 'gelu':
+            self.actfun = F.gelu
         else:
             print('Unknown activate function', act_fun)
             self.actfun = F.relu
