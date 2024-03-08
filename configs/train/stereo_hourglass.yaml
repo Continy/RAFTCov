@@ -1,4 +1,4 @@
-project: "StereoCov/Hourglass"
+project: "StereoCov-Hourglass"
 #paths:
 stage: "tartanair"
 image_size: [480, 640]
