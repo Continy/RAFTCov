@@ -247,6 +247,6 @@ class HourglassDecoder(nn.Module):
         x = self.actfun(x)
         x = self.conv_c12(x)
         x = self.actfun(x)
-        out0 = self.conv_c13(x)
+        x = self.conv_c13(x)
         x = self.actfun(x)
-        return out0
+        return x
