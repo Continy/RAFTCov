@@ -234,33 +234,33 @@ class HourglassDecoder(nn.Module):
 
         x = self.deconv_c7_2(x)  # 1/32 - 512
         x = self.norm1(x)
-        x = nn.LeakyReLU(inplace=False, negative_slope=0.1)(x)
+        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
         x = torch.cat((x, cat4), dim=1)  # - 896
         x = self.deconv_c7(x)  # 1/16 - 320
         x = self.norm2(x)
-        x = nn.LeakyReLU(inplace=False, negative_slope=0.1)(x)
+        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
         x = torch.cat((x, cat3), dim=1)  # - 576 28,40
         x = self.deconv_c8(x)  # 1/8 - 192
         x = self.norm3(x)
-        x = nn.LeakyReLU(inplace=False, negative_slope=0.1)(x)
+        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
         x = self.conv_c8(x)
         x = torch.cat((x, cat2), dim=1)  # - 384 56,80
         x = self.deconv_c9(x)  # 1/4 - 128
         x = self.norm4(x)
-        x = nn.LeakyReLU(inplace=False, negative_slope=0.1)(x)
+        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
         x = self.conv_c9(x)
         x = torch.cat((x, cat1), dim=1)  # - 256 112,160
         x = self.deconv_c10(x)  # 1/2 - 64
         x = self.norm5(x)
-        x = nn.LeakyReLU(inplace=False, negative_slope=0.1)(x)
+        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
         x = self.conv_c10(x)
         x = torch.cat((x, cat0), dim=1)  # - 128 224,320
         x = self.deconv_c11(x)  # 1/1 - 64
         x = self.norm6(x)
-        x = nn.LeakyReLU(inplace=False, negative_slope=0.1)(x)
+        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
         x = self.conv_c12(x)
         x = self.norm7(x)
-        x = nn.LeakyReLU(inplace=False, negative_slope=0.1)(x)
+        x = nn.LeakyReLU(inplace=True, negative_slope=0.1)(x)
 
         out0 = self.conv_c13(x)
         return out0
