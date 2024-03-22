@@ -17,11 +17,12 @@ def preprocess(img):
                         size=(H_, W_),
                         mode='bilinear',
                         align_corners=False)
+    shapes = [W, H, W_, H_]
+    return img, shapes
 
-    return img, W, H, W_, H_
 
-
-def reverse(img, W, H, W_, H_, is_flow=False):
+def reverse(img, shapes, is_flow=False):
+    W, H, W_, H_ = shapes
     img = F.interpolate(img, size=(H, W), mode='bilinear', align_corners=False)
     if is_flow:
         img[:, 0, :, :] *= float(W) / float(W_)

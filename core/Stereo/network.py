@@ -37,7 +37,7 @@ class RAFTCovWithStereoNet7(nn.Module):
 
         self.feature = StereoFeature()
         #self.netGaussian = GaussianGRU(cfg) # AttentionDecoder
-        self.decoder = HourglassDecoder()
+        self.decoder = HourglassDecoder(exp_act_fun=cfg.exp)
 
     def forward(self, tenOne, tenTwo):
         stereo, context, memory, costmap, cats = self.feature(tenOne, tenTwo)

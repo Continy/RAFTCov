@@ -27,6 +27,7 @@ from core.optimizer import fetch_optimizer
 from core.utils.misc import process_cfg
 from loguru import logger as loguru_logger
 from core.Flow.network import RAFTCovWithPWCNet as FlowNetwork
+from core.Flow.network import PWCCov as CovNetwork
 from core.Stereo.network import RAFTCovWithStereoNet7 as StereoNetwork
 from core.utils.preprocess import *
 import core.utils.Utility as Utility
@@ -89,7 +90,7 @@ def count_parameters(model):
 
 
 def train(cfg):
-    model = nn.DataParallel(FlowNetwork(cfg))
+    model = nn.DataParallel(CovNetwork(cfg))
 
     loguru_logger.info("Parameter Count: %d" %
                        count_parameters(model.module.netGaussian))
@@ -97,13 +98,19 @@ def train(cfg):
     if cfg.restore_ckpt is not None:
         print("[Loading ckpt from {}]".format(cfg.restore_ckpt))
         model.load_state_dict(torch.load(cfg.restore_ckpt), strict=False)
-    model.load_state_dict(torch.load('models/210001_RAFTCov.pth'),
-                          strict=False)
+
     vonet_dict = torch.load('models/43_6_2_vonet_30000.pkl')
     new_state_dict = {}
     for key in vonet_dict.keys():
         if key.startswith('module.flowNet'):
             new_key = key.replace('module.flowNet', 'module.feature.pwc')
+            new_state_dict[new_key] = vonet_dict[key]
+        else:
+            new_state_dict[key] = vonet_dict[key]
+    model.load_state_dict(new_state_dict, strict=False)
+    for key in vonet_dict.keys():
+        if key.startswith('module.flowNet'):
+            new_key = key.replace('module.flowNet', 'module.netGaussian.pwc')
             new_state_dict[new_key] = vonet_dict[key]
         else:
             new_state_dict[key] = vonet_dict[key]
@@ -148,14 +155,17 @@ def train(cfg):
                               0.0, 255.0)
 
             output = {}
-            image1, W, H, W_, H_ = preprocess(image1)
-            image2, _, _, _, _ = preprocess(image2)
+            image1, shapes = preprocess(image1)
+            image2, _ = preprocess(image2)
             #with torch.autocast('cuda'):
             flow, covs = model(image1, image2)
-            flow = reverse(flow, W, H, W_, H_, is_flow=True)
-            covs = [reverse(cov, W, H, W_, H_) for cov in covs]
 
-            loss, metrics = sequence_loss(flow, gt_flow, valid, cfg, covs)
+            loss, metrics = sequence_loss(cfg=cfg,
+                                          preds=flow,
+                                          targets=gt_flow,
+                                          valid=valid,
+                                          cov_preds=covs,
+                                          shapes=shapes)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip)
@@ -265,7 +275,11 @@ def train_stereo(cfg):
             transform = v2.Compose([v2.CenterCrop(cropsize), v2.ToTensor()])
             gt_stereo = transform(gt_stereo).cuda()
 
-            loss, metrics = sequence_loss(flow, gt_stereo, None, cfg, covs)
+            loss, metrics = sequence_loss(cfg=cfg,
+                                          preds=flow,
+                                          targets=gt_stereo,
+                                          valid=None,
+                                          cov_preds=covs)
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip)
@@ -317,6 +331,12 @@ if __name__ == '__main__':
                         action='store_true',
                         help='enable wandb logging')
     parser.add_argument('--config', default='configs/train/stereo_small.yaml')
+    parser.add_argument('--exp',
+                        action='store_true',
+                        help='Using exp() for activation function')
+    parser.add_argument('--without_mask',
+                        action='store_true',
+                        help='without motion mask')
     args = parser.parse_args()
     cfg = build_cfg(args.config)
     cfg.update(vars(args))

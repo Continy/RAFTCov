@@ -8,6 +8,7 @@ savename: "TartanAir"
 #restore_ckpt : 'models/60001_flowformer.pth'
 stereo: True
 restore_ckpt: null
+tartanvo_model: "models/43_6_2_vonet_30000.pkl"
 decoder: "hourglass"
 
 folderlength: 100
@@ -22,6 +23,7 @@ dropout: 0.1
 num_heads: 4
 mixtures: 8
 gru_iters: 12
+decoder: "hourglass"
 
 #training:
 mixed_precision: True

@@ -53,7 +53,7 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo, args, visualizer):
         cov = torch.mean(covs, dim=1).cpu()
         cov.squeeze_(0)
         cov = cov.detach()
-        cov = torch.exp(2 * cov)
+        # cov = torch.exp(2 * cov)
         cov = torch.sqrt(cov)
         path = result_path + 'cov/' + str(i).zfill(6) + '.png'
         visualizer(cov, path)
@@ -95,7 +95,7 @@ def process_image(i, imgLlist, imgRlist, model, gt_stereo, args, visualizer):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config',
-                        default='configs/eval/stereo_100 copy.yaml')
+                        default='configs/eval/stereo_hourglass.yaml')
     parser.add_argument('--stereo', action='store_true', default=True)
     parser.add_argument('--cov', action='store_true', default=True)
     parser.add_argument('--mse', action='store_true', default=True)

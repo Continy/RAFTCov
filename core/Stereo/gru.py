@@ -176,8 +176,10 @@ from .PSM import Hourglass
 
 class HourglassDecoder(nn.Module):
 
-    def __init__(self, act_fun='relu'):
+    def __init__(self, act_fun='relu', exp_act_fun=False):
         super(HourglassDecoder, self).__init__()
+
+        self.exp_act_fun = exp_act_fun
         if act_fun == 'relu':
             self.actfun = F.relu
         elif act_fun == 'selu':
@@ -248,5 +250,8 @@ class HourglassDecoder(nn.Module):
         x = self.conv_c12(x)
         x = self.actfun(x)
         x = self.conv_c13(x)
-        x = self.actfun(x)
+        if self.exp_act_fun:
+            x = torch.exp(x)
+        else:
+            x = self.actfun(x)
         return x

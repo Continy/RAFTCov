@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from .gru import GaussianGRU
 from .PWCFlowNet import PWCDCNet, PWCFeature
+from .PWCCovNet import CovFeature
 
 
 class RAFTCovWithPWCNet(nn.Module):
@@ -36,3 +37,21 @@ class MonoCovWithFasterViT(nn.Module):
         flow, mem = self.feature(tenOne, tenTwo)
         cov_preds = self.netGaussian(mem)
         return flow, cov_preds
+
+
+class PWCCov(nn.Module):
+
+    def __init__(self, cfg):
+        super(PWCCov, self).__init__()
+
+        self.feature = PWCFeature()
+        self.netGaussian = CovFeature()
+        if cfg.tartanvo_model is not None:
+            self.feature.load_tartanvo_weight(cfg.tartanvo_model)
+            self.netGaussian.load_tartanvo_weight(cfg.tartanvo_model)
+            #self.feature.init_cnet()
+
+    def forward(self, tenOne, tenTwo):
+        flow, _, _, _ = self.feature(tenOne, tenTwo)
+        cov, _, _, _ = self.netGaussian(tenOne, tenTwo)
+        return flow, cov

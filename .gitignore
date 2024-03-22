@@ -12,3 +12,4 @@ wandb
 *.out
 *.out.swp
 *.err.swp
+tools

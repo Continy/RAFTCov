@@ -1,0 +1,25 @@
+#paths:
+stage: "tartanair"
+image_size: [480, 640]
+root: "/zihao/datasets/"
+
+stereo: True
+model_path: ["models/stereo/70001_RAFTCov.pth"]
+length: 10
+
+training_mode: "cov"
+seed: 2568
+sum_freq: 100
+#gaussian:
+dim: 64
+dropout: 0.
+decoder: "hourglass"
+
+num_heads: 4
+mixtures: 8
+gru_iters: 1
+#paths:
+
+img_path: "datasets/stereo/"
+depth_path: "datasets/stereo/stereo/"
+result_path: "results/stereo_hourglass_3_9/"

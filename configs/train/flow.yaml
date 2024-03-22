@@ -2,7 +2,7 @@
 stage: "tartanair"
 image_size: [480, 640]
 root: "/zihao/datasets/"
-traj: ["abandonedfactory", "hongkongalley", "office", "slaughter", "hospital", "soulcity", "amusement", "house", "oldtown", "westerndesert"]
+traj: ["abandonedfactory", "hongkongalley", "office", "slaughter", "hospital", "amusement", "house", "oldtown", "westerndesert"]
 save_path: "results/P001/"
 savename: "TartanAir"
 stereo: False
@@ -21,6 +21,7 @@ dropout: 0.1
 num_heads: 4
 mixtures: 4
 gru_iters: 12
+decoder: "raft"
 
 #training:
 mixed_precision: True
