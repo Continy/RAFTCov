@@ -337,6 +337,9 @@ if __name__ == '__main__':
     parser.add_argument('--without_mask',
                         action='store_true',
                         help='without motion mask')
+    parser.add_argument('--eps',
+                        action='store_true',
+                        help='add epsilon to the cov loss')
     args = parser.parse_args()
     cfg = build_cfg(args.config)
     cfg.update(vars(args))

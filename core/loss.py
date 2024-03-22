@@ -134,7 +134,7 @@ def simple_stereo_loss(cfg, stereo_pred, depth_gt, valid, cov_preds):
     valid = (mag < cfg.max_cov)
     if not cfg.without_mask:
         mse_loss = (valid[:, None] * mse_loss)
-    if cfg.epsilon:
+    if cfg.eps:
         cov_loss = (mse_loss /
                     (cov_preds + EPSILON)) + torch.log(cov_preds + EPSILON)
     else:
